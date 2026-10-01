@@ -1,35 +1,155 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="라먀니 캐릭터 초상">
 <defs>
-<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fff1e5"/><stop offset="1" stop-color="#e89b6c"/></linearGradient>
-<linearGradient id="hair" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ffd2aa"/><stop offset=".55" stop-color="#f1a26b"/><stop offset="1" stop-color="#d57b49"/></linearGradient>
-<linearGradient id="skin" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff4ed"/><stop offset="1" stop-color="#ffd9ca"/></linearGradient>
+  <linearGradient id="bg" x1=".1" y1="0" x2=".9" y2="1">
+    <stop offset="0" stop-color="#fff7f0"/>
+    <stop offset=".48" stop-color="#f6d3bd"/>
+    <stop offset="1" stop-color="#df986e"/>
+  </linearGradient>
+  <linearGradient id="hair" x1=".15" y1=".05" x2=".85" y2=".95">
+    <stop offset="0" stop-color="#ffd8b1"/>
+    <stop offset=".28" stop-color="#f7bd8a"/>
+    <stop offset=".62" stop-color="#ee9d67"/>
+    <stop offset="1" stop-color="#d47749"/>
+  </linearGradient>
+  <linearGradient id="hairShade" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="#e78955"/>
+    <stop offset="1" stop-color="#bc603e"/>
+  </linearGradient>
+  <linearGradient id="skin" x1=".3" y1="0" x2=".6" y2="1">
+    <stop offset="0" stop-color="#fff8f3"/>
+    <stop offset=".7" stop-color="#ffe4d8"/>
+    <stop offset="1" stop-color="#f7cdbd"/>
+  </linearGradient>
+  <linearGradient id="amber" x1=".5" y1="0" x2=".5" y2="1">
+    <stop stop-color="#ffd66c"/>
+    <stop offset=".5" stop-color="#e99212"/>
+    <stop offset="1" stop-color="#8f4713"/>
+  </linearGradient>
+  <linearGradient id="knit" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="#fffaf5"/>
+    <stop offset="1" stop-color="#e8ddd2"/>
+  </linearGradient>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#6c3c30" flood-opacity=".22"/>
+  </filter>
+  <filter id="hairGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="7"/>
+  </filter>
 </defs>
+
 <rect width="640" height="720" fill="url(#bg)"/>
-<circle cx="96" cy="92" r="120" fill="#fff8f1" opacity=".26"/>
-<path d="M153 585c14-210 31-457 183-508 131-44 253 66 226 246-12 79-43 153-64 262z" fill="url(#hair)"/>
-<path d="M180 688c11-139 70-214 145-229 101-20 185 66 205 229z" fill="#f7efe8"/>
-<path d="M280 439h92l8 73h-108z" fill="url(#skin)"/>
-<ellipse cx="329" cy="310" rx="137" ry="151" fill="url(#skin)"/>
-<path d="M194 277c-10-128 68-211 168-207 102 4 175 88 147 218-33-66-79-105-135-117-10 51-39 91-80 116 14-40 18-73 8-103-27 45-65 77-108 93z" fill="url(#hair)"/>
-<path d="M245 303c23-22 50-22 72-2-19 31-52 32-72 2z" fill="#fff"/>
-<path d="M344 301c21-20 50-18 70 4-19 30-51 30-70-4z" fill="#fff"/>
-<ellipse cx="280" cy="307" rx="18" ry="25" fill="#cf7b12"/>
-<ellipse cx="378" cy="306" rx="18" ry="25" fill="#cf7b12"/>
-<ellipse cx="280" cy="311" rx="10" ry="16" fill="#542c1b"/>
-<ellipse cx="378" cy="310" rx="10" ry="16" fill="#542c1b"/>
-<circle cx="274" cy="299" r="5" fill="#fff"/><circle cx="372" cy="298" r="5" fill="#fff"/>
-<path d="M242 286c22-17 49-17 72-1M344 285c22-15 48-13 69 3" fill="none" stroke="#59372e" stroke-width="8" stroke-linecap="round"/>
-<ellipse cx="243" cy="351" rx="31" ry="13" fill="#ef969d" opacity=".25"/>
-<ellipse cx="416" cy="351" rx="31" ry="13" fill="#ef969d" opacity=".25"/>
-<path d="M307 371c15 15 34 16 50 0" fill="none" stroke="#c96e68" stroke-width="7" stroke-linecap="round"/>
-<g transform="translate(448 187)">
-<circle r="27" fill="#fffaf6" stroke="#fff" stroke-width="6"/>
-<path d="M0-15c18 0 19 26 1 25-14-1-13-18-2-18 8 0 8 9 1 10" fill="none" stroke="#f08aa3" stroke-width="5" stroke-linecap="round"/>
-<rect x="-4" y="20" width="8" height="40" rx="4" fill="#d1a36a" transform="rotate(28)"/>
+<circle cx="105" cy="112" r="126" fill="#fffaf6" opacity=".36"/>
+<circle cx="578" cy="640" r="170" fill="#8f4d3d" opacity=".07"/>
+<path d="M0 566C123 516 193 522 294 566s226 54 346 7v147H0z" fill="#fff8f0" opacity=".22"/>
+
+<g filter="url(#softShadow)">
+  <!-- rear hair mass -->
+  <path d="M150 310C130 169 202 65 332 49c143-18 245 70 235 220-5 83-43 142-54 220-6 41 1 74 16 109-62-15-119-18-184-16-81 2-145 12-207 35 29-78 28-167 12-307z" fill="url(#hair)"/>
+  <path d="M179 231c16-96 83-159 173-166 106-8 176 60 183 165-35-54-76-83-128-97-65-18-137 5-184 49-20 18-34 34-44 49z" fill="#ffe0bd" opacity=".54"/>
+
+  <!-- loose rear curls -->
+  <g fill="none" stroke="url(#hairShade)" stroke-width="12" stroke-linecap="round" opacity=".65">
+    <path d="M177 356c-36 32-37 79-3 109 30 27 24 73-8 101"/>
+    <path d="M491 354c38 28 43 72 14 107-24 29-18 68 9 101"/>
+    <path d="M207 430c-20 37-11 73 19 96"/>
+    <path d="M462 429c18 35 10 70-15 97"/>
+  </g>
+
+  <!-- torso and cardigan -->
+  <path d="M279 433h101l9 72H270z" fill="url(#skin)"/>
+  <path d="M165 702c12-112 44-177 104-211 27-15 51-23 75-25 26 1 50 8 77 24 63 36 95 101 108 212z" fill="url(#knit)"/>
+  <path d="M253 494c24 23 54 33 91 33 36 0 68-11 94-35l31 53c-34 42-76 63-125 63-51 0-94-20-129-62z" fill="#fffdf9"/>
+  <path d="M272 491c15 18 38 29 72 29 35 0 59-11 76-30l15 53c-23 26-53 39-91 39-37 0-67-13-90-39z" fill="#fff"/>
+  <path d="M251 512c-23 50-38 112-39 190h-74c4-78 20-138 49-181 16-24 39-42 64-52z" fill="#efe4da"/>
+  <path d="M438 509c25 12 48 30 65 56 25 38 38 85 41 137h-75c-3-75-14-137-31-193z" fill="#efe4da"/>
+
+  <!-- camisole neckline + ribbing -->
+  <path d="M267 518c15 21 40 33 77 33 38 0 65-13 82-36l-10 81c-17 23-41 35-72 35-30 0-54-11-71-34z" fill="#fffaf7" stroke="#eadcd2" stroke-width="3"/>
+  <g stroke="#e9ded5" stroke-width="3" opacity=".78">
+    <path d="M294 532v74"/><path d="M312 538v76"/><path d="M331 541v77"/><path d="M350 541v77"/><path d="M369 537v77"/><path d="M388 530v76"/>
+  </g>
+  <path d="M322 542c5-8 18-8 23 0 5 7 4 18-1 28l-10 16-10-16c-5-10-6-21-2-28z" fill="none" stroke="#d7a67a" stroke-width="3" opacity=".72"/>
+
+  <!-- face -->
+  <ellipse cx="337" cy="309" rx="139" ry="151" fill="url(#skin)"/>
+  <ellipse cx="223" cy="321" rx="20" ry="31" fill="#f8d7ca"/>
+  <ellipse cx="451" cy="321" rx="20" ry="31" fill="#f8d7ca"/>
+
+  <!-- bangs -->
+  <path d="M191 275c-8-112 66-193 165-197 114-5 191 80 167 204-33-59-76-98-127-118-17 49-48 91-91 121 15-34 22-66 17-97-35 43-80 72-131 87z" fill="url(#hair)"/>
+  <path d="M243 106c-4 72-20 118-52 169 48-27 86-64 112-111-4 46-17 84-39 116 48-30 80-73 99-126" fill="none" stroke="#e58d57" stroke-width="12" stroke-linecap="round" opacity=".52"/>
+  <path d="M423 126c38 48 52 105 42 172" fill="none" stroke="#e08a55" stroke-width="13" stroke-linecap="round" opacity=".55"/>
+
+  <!-- side locks -->
+  <g fill="none" stroke="#ef9b64" stroke-width="16" stroke-linecap="round">
+    <path d="M196 256c-27 69-17 127 27 166"/>
+    <path d="M486 248c28 65 20 125-19 170"/>
+  </g>
+  <g fill="none" stroke="#ffd2a8" stroke-width="7" stroke-linecap="round" opacity=".9">
+    <path d="M194 253c-15 55-6 106 31 155"/>
+    <path d="M489 250c17 51 10 104-22 151"/>
+  </g>
+
+  <!-- brows -->
+  <path d="M250 277c21-13 43-14 64-3M358 273c21-12 43-10 62 4" fill="none" stroke="#a55f3b" stroke-width="6" stroke-linecap="round" opacity=".68"/>
+
+  <!-- eyes -->
+  <path d="M240 305c22-24 53-25 78-3-20 34-56 35-78 3z" fill="#fff"/>
+  <path d="M353 301c24-22 56-20 77 5-22 32-57 32-77-5z" fill="#fff"/>
+  <ellipse cx="280" cy="307" rx="20" ry="27" fill="url(#amber)"/>
+  <ellipse cx="392" cy="305" rx="20" ry="27" fill="url(#amber)"/>
+  <ellipse cx="281" cy="311" rx="10" ry="17" fill="#4d281a"/>
+  <ellipse cx="392" cy="309" rx="10" ry="17" fill="#4d281a"/>
+  <circle cx="273" cy="298" r="6" fill="#fff"/>
+  <circle cx="384" cy="297" r="6" fill="#fff"/>
+  <circle cx="287" cy="318" r="3.5" fill="#ffc85d"/>
+  <circle cx="399" cy="316" r="3.5" fill="#ffc85d"/>
+  <path d="M238 286c25-19 54-18 78 1M355 283c24-17 51-15 74 4" fill="none" stroke="#4a302b" stroke-width="8" stroke-linecap="round"/>
+  <path d="M236 283l-12-9M431 284l12-8" stroke="#4a302b" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- face details -->
+  <ellipse cx="243" cy="352" rx="32" ry="14" fill="#f29a9f" opacity=".25"/>
+  <ellipse cx="430" cy="352" rx="32" ry="14" fill="#f29a9f" opacity=".25"/>
+  <path d="M335 330l-5 11 9 1" fill="none" stroke="#e1aa99" stroke-width="4" stroke-linecap="round"/>
+  <path d="M309 371c17 17 39 18 56 0" fill="none" stroke="#c76768" stroke-width="7" stroke-linecap="round"/>
+  <path d="M321 376c9 6 22 6 31 0" fill="none" stroke="#f2a3a0" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- lollipop clip -->
+  <g transform="translate(457 180) rotate(-9)">
+    <circle r="28" fill="#fffaf7" stroke="#fff" stroke-width="6"/>
+    <path d="M0-16c19 0 20 27 1 26-15-1-14-18-2-18 8 0 9 10 1 11" fill="none" stroke="#ef84a0" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-2 28l-2 47" stroke="#d5ad79" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- crossed gold pins -->
+  <g stroke="#dca225" stroke-width="9" stroke-linecap="round">
+    <path d="M480 219l49 42"/>
+    <path d="M523 217l-42 46"/>
+  </g>
+  <g stroke="#f7c85d" stroke-width="3" stroke-linecap="round" opacity=".8">
+    <path d="M482 218l45 39"/>
+    <path d="M521 220l-38 41"/>
+  </g>
+
+  <!-- cardigan details -->
+  <g fill="none" stroke="#d7c8bc" stroke-width="4" opacity=".72">
+    <path d="M183 567l-21 117M207 550l-18 134M481 551l19 133M507 569l22 115"/>
+    <path d="M174 604l44 9M169 634l43 9M474 612l43-9M480 642l43-9"/>
+  </g>
+  <circle cx="206" cy="602" r="10" fill="#b8865f"/>
+  <circle cx="489" cy="603" r="10" fill="#b8865f"/>
+  <circle cx="206" cy="602" r="4" fill="#e7c9ad"/>
+  <circle cx="489" cy="603" r="4" fill="#e7c9ad"/>
+
+  <!-- skirt / belt hint -->
+  <path d="M237 666c43-20 163-20 207 0l12 54H226z" fill="#343036"/>
+  <rect x="261" y="660" width="160" height="15" rx="7" fill="#2a272c"/>
+  <rect x="327" y="655" width="35" height="25" rx="8" fill="none" stroke="#cf9d56" stroke-width="6"/>
 </g>
-<g stroke="#d69a20" stroke-width="9" stroke-linecap="round"><path d="M476 217l46 38"/><path d="M518 216l-40 44"/></g>
-<path d="M213 687c8-78 25-140 50-181l57 43h80l55-42c29 47 44 105 50 180z" fill="#fff9f4"/>
-<path d="M193 560c-30 24-46 61-45 105l54 23 33-133zM463 555l35 133 55-23c0-45-17-82-49-105z" fill="#eee2d9"/>
-<text x="36" y="652" font-family="Segoe UI,Malgun Gothic,sans-serif" font-weight="800" font-size="24" fill="#7c4d3c">RAMYANI · 라먀니</text>
-<text x="38" y="679" font-family="Segoe UI,Malgun Gothic,sans-serif" font-size="14" fill="#755e55">peach hair · cream knit · night heist</text>
+
+<g transform="translate(34 640)">
+  <rect width="245" height="58" rx="17" fill="#fff9f3" opacity=".88"/>
+  <text x="18" y="26" font-family="Segoe UI,Malgun Gothic,sans-serif" font-size="15" font-weight="800" fill="#81513f">RAMYANI · 라먀니</text>
+  <text x="18" y="46" font-family="Segoe UI,Malgun Gothic,sans-serif" font-size="11" fill="#79645c">amber eyes · peach hair · cream knit</text>
+</g>
 </svg>
