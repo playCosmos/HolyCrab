@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16131d">
+  <title>HolyCrab — 엄마의 간장게장 레시피를 훔쳐라</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="app">
+    <section id="game-wrap" aria-label="HolyCrab game">
+      <canvas id="game" width="1440" height="810"></canvas>
+
+      <div class="hud">
+        <div id="mission-card" class="card">
+          <div id="mission-label">TONIGHT'S MISSION</div>
+          <div id="mission">레시피 단서 찾기</div>
+          <div id="submission">엄마에게 들키지 말 것.</div>
+        </div>
+        <div id="suspicion-card" class="card">
+          <div id="suspicion-title"><span>엄마의 의심</span><span>들키면 방으로!</span></div>
+          <div class="meter"><div id="suspicion-fill"></div></div>
+        </div>
+      </div>
+
+      <div id="controls" class="card">
+        <kbd>WASD</kbd>/<kbd>방향키</kbd> 이동 ·
+        <kbd>SHIFT</kbd> 살금살금 ·
+        <kbd>E</kbd> 조사/숨기 ·
+        <kbd>TAB</kbd> 단서
+      </div>
+
+      <div id="prompt"></div>
+      <div id="toast"></div>
+
+      <aside id="journal" class="card hidden">
+        <div class="journal-title">라먀니의 단서 노트</div>
+        <div id="journal-body"></div>
+      </aside>
+
+      <section id="title" class="overlay">
+        <div class="panel title-panel">
+          <div class="title-copy">
+            <div class="logo">HOLY<em>CRAB</em></div>
+            <div class="subtitle">엄마의 간장게장 레시피를 훔쳐라</div>
+            <p class="desc">
+              새벽 1시. 라먀니에게 남은 건 호기심, 빈 밥그릇, 그리고
+              “우리 집 게장은 비밀이야”라는 엄마의 한마디뿐이다.<br><br>
+              집 안을 조용히 뒤져 레시피 단서를 모으고, 부엌의 비밀 상자를 해독한 뒤
+              엄마에게 들키기 전에 현관으로 빠져나가자.
+            </p>
+            <div class="actions">
+              <button id="start-btn" class="primary">작전 시작</button>
+            </div>
+          </div>
+          <div class="portrait">
+            <img src="./assets/ramyani.png" alt="라먀니 캐릭터">
+          </div>
+        </div>
+      </section>
+
+      <section id="puzzle" class="overlay hidden">
+        <div id="puzzle-panel" class="panel">
+          <h2>엄마의 비밀 레시피 상자</h2>
+          <p>상자 전면에 세 문제가 적혀 있다. 모은 단서만 기억하면 풀 수 있다.</p>
+          <div id="puzzle-body"></div>
+          <p id="puzzle-result"></p>
+          <div class="actions">
+            <button id="puzzle-submit" class="primary">해독</button>
+            <button id="puzzle-close">닫기</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="result" class="overlay hidden">
+        <div class="panel">
+          <h1 id="result-title">작전 성공</h1>
+          <p id="result-text"></p>
+          <div class="result-stats">
+            <div class="stat"><b id="result-rank">S</b><span>작전 등급</span></div>
+            <div class="stat"><b id="result-time">00:00</b><span>소요 시간</span></div>
+            <div class="stat"><b id="result-caught">0회</b><span>들킨 횟수</span></div>
+          </div>
+          <div class="actions">
+            <button id="restart-btn" class="primary">다시 훔치기</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./src/core.js"></script>
+  <script src="./src/game.js"></script>
+</body>
+</html>
