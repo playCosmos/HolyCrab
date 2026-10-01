@@ -4,7 +4,7 @@
   "private": true,
   "description": "엄마의 간장게장 레시피를 훔치는 1인용 스텔스 코미디 게임",
   "scripts": {
-    "test": "node --test tests/core.test.js"
+    "test": "node --check src/core.js && node --check src/game.js && node --test tests/core.test.js"
   },
   "engines": {
     "node": ">=18"
