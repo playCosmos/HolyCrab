@@ -1,0 +1,227 @@
+:root {
+  --ink: #2a2020;
+  --cream: #fff5ea;
+  --peach: #f4a06f;
+  --gold: #e6a74f;
+  --rose: #f18a92;
+  --night: #16131d;
+  --panel: rgba(24, 19, 27, .88);
+  --line: rgba(255, 235, 214, .18);
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0c0a10; }
+body {
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  color: var(--cream);
+  user-select: none;
+}
+
+#app { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
+
+#game-wrap {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.55);
+  background: #1a151d;
+}
+
+canvas { width: 100%; height: 100%; display: block; image-rendering: auto; }
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: start;
+  gap: 12px;
+}
+
+.card {
+  background: rgba(22, 17, 24, .74);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+}
+
+#mission-card { padding: 12px 14px; width: min(520px, 60vw); }
+#mission-label { font-size: 12px; opacity: .7; letter-spacing: .14em; font-weight: 700; }
+#mission { margin-top: 5px; font-size: 16px; font-weight: 700; }
+#submission { margin-top: 4px; font-size: 12px; opacity: .78; }
+
+#suspicion-card { padding: 10px 12px; width: 230px; }
+#suspicion-title { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 7px; }
+.meter { height: 9px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); }
+#suspicion-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f7d36d, #f49a67 60%, #ef666f);
+  transition: width .08s linear;
+}
+
+#controls {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  opacity: .9;
+}
+kbd {
+  font: inherit; font-weight: 700; padding: 1px 6px; border-radius: 5px;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14);
+}
+
+#prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: rgba(16,12,18,.86);
+  border: 1px solid rgba(255,255,255,.16);
+  font-size: 13px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .14s;
+}
+#prompt.show { opacity: 1; }
+
+#toast {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translate(-50%, -10px);
+  background: rgba(28, 21, 28, .93);
+  border: 1px solid rgba(255,255,255,.15);
+  padding: 10px 14px;
+  border-radius: 12px;
+  opacity: 0;
+  transition: .2s;
+  pointer-events: none;
+  max-width: min(620px, 80vw);
+  text-align: center;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 74% 35%, rgba(246,154,102,.12), transparent 32%),
+    rgba(11, 9, 13, .80);
+  z-index: 20;
+}
+.overlay.hidden { display: none; }
+
+.panel {
+  width: min(760px, 88%);
+  padding: 28px;
+  border-radius: 22px;
+  background: rgba(30, 23, 29, .96);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 24px 70px rgba(0,0,0,.5);
+}
+.panel h1, .panel h2, .panel p { margin-top: 0; }
+
+.title-panel {
+  width: min(980px, 92%);
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 26px;
+  align-items: stretch;
+}
+.title-copy { padding: 10px 4px; display: flex; flex-direction: column; justify-content: center; }
+.logo { font-weight: 900; font-size: clamp(42px, 7vw, 88px); line-height: .9; letter-spacing: -.04em; }
+.logo em { color: var(--peach); font-style: normal; }
+.subtitle { margin-top: 14px; font-size: 20px; font-weight: 700; }
+.desc { margin-top: 14px; color: rgba(255,245,234,.76); line-height: 1.6; }
+.portrait {
+  min-height: 430px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #f8dfcf, #d98762);
+  overflow: hidden;
+  position: relative;
+}
+.portrait img { width: 100%; height: 100%; object-fit: cover; object-position: 52% 35%; display: block; }
+.portrait::after {
+  content: "라먀니";
+  position: absolute;
+  left: 16px; bottom: 14px;
+  font-weight: 900; font-size: 22px;
+  color: #2b1c1c;
+  background: rgba(255,245,234,.82);
+  padding: 6px 10px; border-radius: 10px;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 15px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  color: #271b1b;
+  background: var(--cream);
+}
+button.primary { background: linear-gradient(135deg, #f6b77e, #ef8d72); }
+button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+.actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+#journal {
+  position: absolute;
+  right: 18px;
+  top: 112px;
+  width: 330px;
+  max-height: 66%;
+  overflow: auto;
+  padding: 14px;
+  z-index: 8;
+  pointer-events: auto;
+}
+#journal.hidden { display: none; }
+.journal-title { font-weight: 900; margin-bottom: 10px; }
+.clue {
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  border-left: 3px solid var(--peach);
+}
+.clue strong { display: block; font-size: 13px; }
+.clue span { display: block; font-size: 12px; opacity: .78; margin-top: 3px; line-height: 1.45; }
+
+#puzzle-panel .q { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); }
+#puzzle-panel .opts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 8px; }
+#puzzle-panel .opt { background: rgba(255,255,255,.08); color: var(--cream); border: 1px solid rgba(255,255,255,.1); }
+#puzzle-panel .opt.selected { outline: 2px solid var(--peach); background: rgba(244,160,111,.18); }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+.stat { padding: 12px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: center; }
+.stat b { display: block; font-size: 22px; color: #f4b27f; }
+.stat span { font-size: 11px; opacity: .7; }
+
+@media (max-width: 760px) {
+  .title-panel { grid-template-columns: 1fr; }
+  .portrait { display: none; }
+  #suspicion-card { width: 170px; }
+  #controls { display: none; }
+  #mission-card { width: 60vw; }
+}
