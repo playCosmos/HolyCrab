@@ -714,51 +714,116 @@
     ctx.globalAlpha = player.hidden ? .28 : 1;
     ctx.rotate(player.angle + Math.PI / 2);
 
-    ctx.fillStyle = "#f4ede5";
+    // soft contact shadow
+    ctx.fillStyle = "rgba(0,0,0,.18)";
     ctx.beginPath();
-    ctx.ellipse(0, 8, 13, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 19, 14, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#30272d";
+    // boots / legs
+    ctx.fillStyle = "#4a3530";
+    roundedRect(-10, 13, 7, 13, 3, ctx.fillStyle);
+    roundedRect(3, 13, 7, 13, 3, ctx.fillStyle);
+
+    // dark skirt
+    ctx.fillStyle = "#342d32";
     ctx.beginPath();
-    ctx.ellipse(0, 14, 12, 10, 0, 0, Math.PI * 2);
+    ctx.moveTo(-13, 5);
+    ctx.lineTo(13, 5);
+    ctx.lineTo(10, 18);
+    ctx.lineTo(-10, 18);
+    ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = "#f3b27f";
+    // cream knit cardigan silhouette
+    ctx.fillStyle = "#f1e8df";
     ctx.beginPath();
-    ctx.arc(0, -8, 15, 0, Math.PI * 2);
+    ctx.ellipse(0, 5, 14.5, 17, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#ffd7bb";
+    // white ribbed inner top
+    ctx.fillStyle = "#fffaf5";
+    roundedRect(-7, -1, 14, 13, 5, ctx.fillStyle);
+    ctx.strokeStyle = "rgba(197,178,164,.62)";
+    ctx.lineWidth = 1;
+    for (let x = -4; x <= 4; x += 4) {
+      ctx.beginPath();
+      ctx.moveTo(x, 1);
+      ctx.lineTo(x, 10);
+      ctx.stroke();
+    }
+
+    // cardigan sleeves
+    ctx.strokeStyle = "#eadfd4";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-10, 2); ctx.lineTo(-16, 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, 2); ctx.lineTo(16, 12); ctx.stroke();
+
+    // peach hair back mass
+    ctx.fillStyle = "#ef9c68";
     ctx.beginPath();
-    ctx.arc(0, -6, 10, 0, Math.PI * 2);
+    ctx.arc(0, -8, 16.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#d98651";
+    // side curls
+    ctx.strokeStyle = "#d97f50";
+    ctx.lineWidth = 4.2;
+    ctx.beginPath(); ctx.arc(-12, -4, 7, Math.PI * .35, Math.PI * 1.45); ctx.stroke();
+    ctx.beginPath(); ctx.arc(12, -4, 7, Math.PI * 1.55, Math.PI * 2.65); ctx.stroke();
+
+    // face
+    ctx.fillStyle = "#ffe2d2";
     ctx.beginPath();
-    ctx.arc(-8, -8, 5, 0, Math.PI * 2);
-    ctx.arc(8, -8, 5, 0, Math.PI * 2);
+    ctx.arc(0, -7, 10.7, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#f4a7bb";
+    // bangs
+    ctx.fillStyle = "#f4ad77";
     ctx.beginPath();
-    ctx.arc(10, -15, 3.4, 0, Math.PI * 2);
+    ctx.moveTo(-10, -13);
+    ctx.quadraticCurveTo(-5, -22, 2, -18);
+    ctx.quadraticCurveTo(9, -20, 11, -12);
+    ctx.quadraticCurveTo(4, -14, 1, -7);
+    ctx.quadraticCurveTo(-3, -12, -10, -9);
+    ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = "#fff1ef";
-    ctx.lineWidth = 1.3;
+
+    // amber eyes
+    ctx.fillStyle = "#7b431f";
+    ctx.beginPath(); ctx.ellipse(-3.5, -6.5, 1.5, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(3.5, -6.5, 1.5, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#efaa29";
+    ctx.beginPath(); ctx.arc(-3.5, -7.1, .7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.5, -7.1, .7, 0, Math.PI * 2); ctx.fill();
+
+    // lollipop hair clip
+    ctx.fillStyle = "#fff8f2";
     ctx.beginPath();
-    ctx.arc(10, -15, 2.2, 0, Math.PI * 1.7);
+    ctx.arc(9.8, -16.2, 4.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ef8da3";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(9.8, -16.2, 2.7, -.6, Math.PI * 1.45);
     ctx.stroke();
 
-    ctx.fillStyle = "#6d3a21";
-    ctx.beginPath(); ctx.arc(-3, -7, 1.3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(3, -7, 1.3, 0, Math.PI * 2); ctx.fill();
+    // crossed gold pins
+    ctx.strokeStyle = "#e0a42d";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(11.8, -12.8); ctx.lineTo(16, -8.8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(15.9, -13); ctx.lineTo(12, -8.6); ctx.stroke();
+
+    // tiny blush
+    ctx.fillStyle = "rgba(240,142,151,.30)";
+    ctx.beginPath(); ctx.ellipse(-6.2, -3.6, 2.2, 1.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6.2, -3.6, 2.2, 1.1, 0, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
 
     ctx.fillStyle = "rgba(255,245,234,.92)";
     ctx.font = "800 11px Segoe UI, Malgun Gothic, sans-serif";
-    ctx.fillText("라먀니", player.x - 20, player.y - 30);
+    ctx.fillText("라먀니", player.x - 20, player.y - 33);
   }
 
   function draw() {
