@@ -475,3 +475,17 @@ button:active { transform: translateY(0); }
   .vn-next { right: 14px; bottom: 12px; }
   .vn-chapter { left: 12px; top: 12px; }
 }
+
+.vn-summary-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 132px) 1fr;
+  gap: 12px;
+  padding: 4px 0;
+}
+.vn-summary-row b {
+  color: rgba(255,245,234,.86);
+  font-weight: 850;
+}
+.vn-summary-row span {
+  color: rgba(255,245,234,.64);
+}
