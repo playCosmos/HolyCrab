@@ -77,72 +77,72 @@
 
   const DECOY_POOLS = {
     home: [
-      { id: "home-v0-fake-ratio", visit: 0, x: 366, y: 350, title: "찢어진 조리 메모", text: "간장 2 : 물 1. 진하게 해야 맛있다?", resolvesWith: ["market-soy-ratio", "final-ratio"] },
-      { id: "home-v0-grocery-noise", visit: 0, x: 760, y: 255, title: "냉장고 옆 장보기 쪽지", text: "우유, 계란, 휴지, 고양이 간식. 레시피와는 관계가 없어 보이지만 일단 적어 둔다.", flavor: true },
-      { id: "home-v0-old-print", visit: 0, x: 1006, y: 510, title: "인터넷 레시피 출력물", text: "탄산음료를 조금 넣으면 감칠맛이 난다는 낡은 출력물. 엄마가 실제로 쓰는지는 알 수 없다.", flavor: true },
-      { id: "home-v0-sister-note", visit: 0, x: 390, y: 650, title: "언니의 야식 메모", text: "‘내 푸딩 먹지 마.’ 중요한 암호처럼 보였지만 그냥 푸딩 얘기다.", flavor: true },
+      { id: "home-v0-mintchoco", visit: 0, x: 366, y: 350, title: "수상한 게장 레시피", text: "간장물에 민트초코 아이스크림 두 스쿱을 녹인다. 누가 봐도 엄마 레시피는 아니다.", obviousFake: true },
+      { id: "home-v0-ash", visit: 0, x: 1006, y: 510, title: "구겨진 조리 낙서", text: "마지막에 담뱃재 한 꼬집을 넣으면 불맛 완성. 장난으로 적은 게 분명하다.", obviousFake: true },
+      { id: "home-v0-grocery", visit: 0, x: 760, y: 255, title: "장보기 쪽지", text: "우유, 계란, 휴지, 고양이 간식. 게장과 아무 상관 없는 생활 메모다.", flavor: true },
+      { id: "home-v0-pudding", visit: 0, x: 390, y: 650, title: "언니의 포스트잇", text: "‘내 푸딩 먹으면 죽음.’ 레시피가 아니라 푸딩 경고다.", flavor: true },
 
-      { id: "home-v1-fake-aging", visit: 1, x: 365, y: 332, title: "낡은 타이머 메모", text: "‘6시간이면 충분.’ 무엇을 재는 시간인지는 적혀 있지 않다.", resolvesWith: ["home-first-rest", "shop-aging", "final-rest"] },
-      { id: "home-v1-fake-aroma", visit: 1, x: 905, y: 520, title: "재료 수정 흔적", text: "생강 X, 마늘만 많이? 연필로 여러 번 지웠다 쓴 흔적이 있다.", resolvesWith: ["home-aromatics", "market-aromatics"] },
-      { id: "home-v1-delivery", visit: 1, x: 1010, y: 280, title: "택배 도착 메모", text: "수건 4장, 세제 리필 2개. 부엌에 붙어 있어서 괜히 수상해 보인다.", flavor: true },
-      { id: "home-v1-sticky", visit: 1, x: 735, y: 650, title: "정체불명 포스트잇", text: "‘다음에는 3번 먼저.’ 무엇의 3번인지는 아무도 적지 않았다.", flavor: true },
+      { id: "home-v1-cola", visit: 1, x: 365, y: 332, title: "엉터리 비법 메모", text: "간장 대신 콜라 2리터를 붓고 사이다로 간을 맞춘다. 진지하게 볼 필요가 없다.", obviousFake: true },
+      { id: "home-v1-toothpaste", visit: 1, x: 905, y: 520, title: "괴상한 향채 메모", text: "생강 대신 민트 치약 한 줄. 냄새만 상상해도 탈락이다.", obviousFake: true },
+      { id: "home-v1-delivery", visit: 1, x: 1010, y: 280, title: "택배 메모", text: "수건 4장, 세제 리필 2개. 부엌에 붙어 있을 뿐 게장과는 무관하다.", flavor: true },
+      { id: "home-v1-tv", visit: 1, x: 735, y: 650, title: "TV 시청 메모", text: "‘9시 드라마 본방.’ 숫자는 있지만 숙성 시간이 아니다.", flavor: true },
 
-      { id: "home-v2-fake-reboil", visit: 2, x: 980, y: 515, title: "버린 조리 초안", text: "1차 뒤에는 끓이지 말 것. 그대로 다시 붓기. 옆에 크게 X 표시가 그어져 있다.", resolvesWith: ["home-reboil", "shop-reboil", "final-rest"] },
-      { id: "home-v2-fake-sweet", visit: 2, x: 785, y: 255, title: "설탕 비율 메모", text: "‘설탕만 두 배.’ 필체가 엄마 것과 조금 다르다.", resolvesWith: ["home-sweetener", "shop-sweet"] },
-      { id: "home-v2-calendar-noise", visit: 2, x: 350, y: 650, title: "달력 낙서", text: "치과 4시, 분리수거 목요일, 드라마 마지막 회. 매우 자세하지만 게장은 없다.", flavor: true },
-      { id: "home-v2-code-noise", visit: 2, x: 1040, y: 255, title: "숫자만 적힌 쪽지", text: "7-2-9-4. 비밀번호 같지만 어디에도 맞지 않는다.", flavor: true }
+      { id: "home-v2-coffee", visit: 2, x: 980, y: 515, title: "장난 레시피", text: "간장물 대신 진한 아메리카노를 붓고 휘핑크림으로 마감. 즉시 폐기감이다.", obviousFake: true },
+      { id: "home-v2-cereal", visit: 2, x: 785, y: 255, title: "장난 레시피 2", text: "꽃게 위에 초코 시리얼을 뿌리고 우유를 붓는다. 게장이 아니라 사고다.", obviousFake: true },
+      { id: "home-v2-calendar", visit: 2, x: 350, y: 650, title: "달력 낙서", text: "치과 4시, 분리수거 목요일, 드라마 마지막 회.", flavor: true },
+      { id: "home-v2-code", visit: 2, x: 1040, y: 255, title: "숫자 쪽지", text: "7-2-9-4. 알고 보니 택배함 비밀번호 메모다.", flavor: true }
     ],
 
     market: [
-      { id: "market-v0-fake-ratio", visit: 0, x: 390, y: 405, title: "장류 가게 홍보 전단", text: "업소용 초간단 비율: 간장 3 : 물 1. 엄마가 이 전단을 보고 산 건지는 불명.", resolvesWith: ["market-soy-ratio", "final-ratio"] },
-      { id: "market-v0-fake-crab", visit: 0, x: 720, y: 520, title: "옆 가게 홍보 문구", text: "‘아무 꽃게나 양념만 세면 된다!’ 너무 자신만만한 문구다.", resolvesWith: ["market-crab"] },
-      { id: "market-v0-parking", visit: 0, x: 1080, y: 420, title: "주차 확인증", text: "2시간 무료 주차. 뒷면까지 확인했지만 아무것도 없다.", flavor: true },
-      { id: "market-v0-lottery", visit: 0, x: 1340, y: 340, title: "시장 경품권", text: "도장 8개를 모으면 장바구니 증정. 레시피 조각은 아니다.", flavor: true },
+      { id: "market-v0-mint", visit: 0, x: 390, y: 405, title: "시장 괴식 레시피", text: "민트초코 소스를 간장과 1:1로 섞는다. 상인이 웃으라고 붙여 둔 장난 레시피다.", obviousFake: true },
+      { id: "market-v0-ramen", visit: 0, x: 720, y: 520, title: "황당한 조리법", text: "꽃게에 라면 수프 세 봉지를 붓고 전자레인지 20분. 게장 비법일 리 없다.", obviousFake: true },
+      { id: "market-v0-parking", visit: 0, x: 1080, y: 420, title: "주차 확인증", text: "2시간 무료 주차. 뒷면도 그냥 주차 안내다.", flavor: true },
+      { id: "market-v0-lottery", visit: 0, x: 1340, y: 340, title: "시장 경품권", text: "도장 8개를 모으면 장바구니 증정.", flavor: true },
 
-      { id: "market-v1-fake-aroma", visit: 1, x: 380, y: 405, title: "채소가게 추천표", text: "게장에는 생강 대신 고수? 사장님의 실험 메뉴 추천인 듯하다.", resolvesWith: ["market-aromatics", "home-aromatics"] },
-      { id: "market-v1-fake-sweet", visit: 1, x: 710, y: 515, title: "시럽 판촉 카드", text: "‘설탕만 쓰면 충분!’ 특정 상품 광고 문구라 신뢰하기 어렵다.", resolvesWith: ["market-maesil", "home-sweetener", "shop-sweet"] },
-      { id: "market-v1-delivery", visit: 1, x: 1080, y: 420, title: "상인 배송 목록", text: "멸치 3박스, 김 5묶음, 종이컵 2줄. 엄마 주문은 아니다.", flavor: true },
-      { id: "market-v1-phone", visit: 1, x: 1338, y: 340, title: "분실물 연락처", text: "‘빨간 우산 주인 010-XXXX…’. 수상해 보였지만 정말 분실물 메모다.", flavor: true },
+      { id: "market-v1-ash", visit: 1, x: 380, y: 405, title: "상인들의 장난 메모", text: "담뱃재를 넣으면 훈연 향 완성. 누가 낙서한 농담이다.", obviousFake: true },
+      { id: "market-v1-chocolate", visit: 1, x: 710, y: 515, title: "초콜릿 게장 비법?", text: "간장 대신 초콜릿 시럽을 듬뿍. 제목부터 이미 틀렸다.", obviousFake: true },
+      { id: "market-v1-delivery", visit: 1, x: 1080, y: 420, title: "상인 배송 목록", text: "멸치 3박스, 김 5묶음, 종이컵 2줄.", flavor: true },
+      { id: "market-v1-phone", visit: 1, x: 1338, y: 340, title: "분실물 연락처", text: "빨간 우산 주인 연락처. 레시피와 관계없다.", flavor: true },
 
-      { id: "market-v2-fake-salt", visit: 2, x: 390, y: 405, title: "소금가게 메모", text: "소금을 한 줌 넣으면 간장이 덜 짜진다? 무슨 뜻인지 앞뒤가 맞지 않는다.", resolvesWith: ["market-balance", "final-ratio"] },
-      { id: "market-v2-fake-fruit", visit: 2, x: 720, y: 520, title: "과일청 홍보 카드", text: "사과청만 넣으면 다른 단맛 재료는 필요 없다는 광고 문구.", resolvesWith: ["market-maesil", "shop-sweet"] },
-      { id: "market-v2-receipt", visit: 2, x: 1080, y: 420, title: "남의 영수증", text: "두부, 파, 꽁치, 고무장갑. 엄마 장바구니와 상관없는 영수증이다.", flavor: true },
-      { id: "market-v2-event", visit: 2, x: 1340, y: 340, title: "시장 노래자랑 안내", text: "예선 접수 오후 3시. 레시피 암호처럼 보이는 숫자는 참가 번호였다.", flavor: true },
+      { id: "market-v2-energy", visit: 2, x: 390, y: 405, title: "에너지드링크 게장", text: "물 대신 에너지드링크 네 캔을 넣는다. 숙성보다 잠이 먼저 달아날 레시피다.", obviousFake: true },
+      { id: "market-v2-ketchup", visit: 2, x: 720, y: 520, title: "케첩 게장 전단", text: "간장 없이 케첩과 마요네즈만 사용. 다른 음식도 아니고 그냥 장난이다.", obviousFake: true },
+      { id: "market-v2-receipt", visit: 2, x: 1080, y: 420, title: "남의 영수증", text: "두부, 파, 꽁치, 고무장갑. 엄마 장바구니와 무관하다.", flavor: true },
+      { id: "market-v2-event", visit: 2, x: 1340, y: 340, title: "시장 노래자랑 안내", text: "예선 접수 오후 3시. 숫자는 참가 시간일 뿐이다.", flavor: true },
 
-      { id: "market-v3-fake-crab", visit: 3, x: 390, y: 405, title: "냉동 꽃게 특가표", text: "게장은 무조건 냉동 꽃게가 낫다는 과장된 특가 문구.", resolvesWith: ["market-crab", "market-freshness"] },
-      { id: "market-v3-fake-ratio", visit: 3, x: 720, y: 520, title: "옆집 간장소스 비율", text: "간장 1 : 물 3. 게장이 아니라 불고기 소스 비율인 것 같다.", resolvesWith: ["market-soy-ratio", "final-ratio"] },
-      { id: "market-v3-number", visit: 3, x: 1080, y: 420, title: "상자에 적힌 숫자", text: "24 / 12 / 8. 숙성 시간처럼 보였지만 박스 수량 표시다.", flavor: true },
-      { id: "market-v3-coupon", visit: 3, x: 1340, y: 340, title: "단골 쿠폰", text: "열 번 사면 한 번 할인. 엄마가 오래 다닌 가게라는 것만 알 수 있다.", flavor: true }
+      { id: "market-v3-candy", visit: 3, x: 390, y: 405, title: "사탕 게장 레시피", text: "간장물에 과일사탕 한 봉지를 통째로 녹인다. 색깔부터 위험하다.", obviousFake: true },
+      { id: "market-v3-icecream", visit: 3, x: 720, y: 520, title: "아이스크림 숙성법", text: "꽃게를 바닐라 아이스크림에 하루 재운다. 시장 아이들 장난 낙서다.", obviousFake: true },
+      { id: "market-v3-number", visit: 3, x: 1080, y: 420, title: "상자 수량표", text: "24 / 12 / 8. 숙성 시간이 아니라 박스 수량이다.", flavor: true },
+      { id: "market-v3-coupon", visit: 3, x: 1340, y: 340, title: "단골 쿠폰", text: "열 번 사면 한 번 할인. 그 이상 의미는 없다.", flavor: true }
     ],
 
     banchan: [
-      { id: "shop-v0-fake-cool", visit: 0, x: 430, y: 250, title: "오래된 교육용 메모", text: "간장물은 뜨거울 때 바로 부으면 잘 밴다? 날짜가 몇 년 전이다.", resolvesWith: ["shop-cool", "final-cool"] },
-      { id: "shop-v0-fake-sweet", visit: 0, x: 820, y: 500, title: "직원용 단맛 메모", text: "설탕만 사용. 매실청 금지. 옆에 ‘폐기 레시피’라는 글자가 반쯤 찢겨 있다.", resolvesWith: ["shop-sweet", "home-sweetener"] },
-      { id: "shop-v0-order", visit: 0, x: 960, y: 500, title: "반찬 주문표", text: "멸치볶음 2, 진미채 1, 계란말이 2. 게장 주문은 없다.", flavor: true },
-      { id: "shop-v0-cleaning", visit: 0, x: 1320, y: 210, title: "마감 청소 순서", text: "바닥 → 냉장고 손잡이 → 계산대. 조리 순서처럼 보여 잠깐 헷갈린다.", flavor: true },
+      { id: "shop-v0-mintchoco", visit: 0, x: 430, y: 250, title: "직원 장난 레시피", text: "마지막에 민트초코 토핑을 올리면 여름 한정 게장 완성. 직원들 장난이다.", obviousFake: true },
+      { id: "shop-v0-ash", visit: 0, x: 820, y: 500, title: "폐기함 옆 낙서", text: "담뱃재 두 스푼, 재떨이 향이 포인트. 당연히 조리법이 아니다.", obviousFake: true },
+      { id: "shop-v0-order", visit: 0, x: 960, y: 500, title: "반찬 주문표", text: "멸치볶음 2, 진미채 1, 계란말이 2.", flavor: true },
+      { id: "shop-v0-cleaning", visit: 0, x: 1320, y: 210, title: "마감 청소 순서", text: "바닥 → 냉장고 손잡이 → 계산대. 조리 순서가 아니다.", flavor: true },
 
-      { id: "shop-v1-fake-aging", visit: 1, x: 430, y: 250, title: "구형 숙성 라벨", text: "12시간 / 테스트 배치. 지금도 쓰는 기준인지는 알 수 없다.", resolvesWith: ["shop-aging", "home-first-rest", "final-rest"] },
-      { id: "shop-v1-fake-reboil", visit: 1, x: 820, y: 500, title: "실험 배치 체크표", text: "간장 재가열 생략. 결과 칸에는 ‘별로’라고 적혀 있다.", resolvesWith: ["shop-reboil", "home-reboil", "final-rest"] },
-      { id: "shop-v1-staff", visit: 1, x: 960, y: 500, title: "직원 교대표", text: "화요일 오후: 민지, 수요일 오전: 사장님. 레시피 암호는 아니었다.", flavor: true },
-      { id: "shop-v1-price", visit: 1, x: 1320, y: 210, title: "가격 수정표", text: "오징어젓 +500원, 깻잎무침 +300원. 숫자가 많아 괜히 중요한 문서처럼 보인다.", flavor: true },
+      { id: "shop-v1-bubbletea", visit: 1, x: 430, y: 250, title: "버블티 게장", text: "타피오카 펄을 넣고 흑당 시럽으로 간을 맞춘다. 메뉴판 낙서 수준이다.", obviousFake: true },
+      { id: "shop-v1-cocoa", visit: 1, x: 820, y: 500, title: "코코아 간장물?", text: "간장물에 코코아 가루 다섯 숟갈. 색만 비슷하다고 같은 게 아니다.", obviousFake: true },
+      { id: "shop-v1-staff", visit: 1, x: 960, y: 500, title: "직원 교대표", text: "화요일 오후: 민지, 수요일 오전: 사장님.", flavor: true },
+      { id: "shop-v1-price", visit: 1, x: 1320, y: 210, title: "가격 수정표", text: "오징어젓 +500원, 깻잎무침 +300원.", flavor: true },
 
-      { id: "shop-v2-fake-rest", visit: 2, x: 430, y: 250, title: "다른 절임반찬 작업표", text: "숙성 8시간. 간장게장 표가 아니라 장아찌 작업표였다.", resolvesWith: ["shop-aging", "final-rest"] },
-      { id: "shop-v2-fake-cool", visit: 2, x: 820, y: 500, title: "급속 작업 메모", text: "끓인 소스를 바로 사용. 옆 칸 품목은 닭강정이다.", resolvesWith: ["shop-cool", "final-cool"] },
-      { id: "shop-v2-supply", visit: 2, x: 960, y: 500, title: "포장용기 발주서", text: "대 100개, 중 200개, 소 100개. 중요한 비율처럼 보이는 숫자뿐이다.", flavor: true },
+      { id: "shop-v2-cheese", visit: 2, x: 430, y: 250, title: "치즈 게장 실험?", text: "슬라이스 치즈 열 장을 녹여 간장 대신 붓는다. 실험조차 하기 싫은 조합이다.", obviousFake: true },
+      { id: "shop-v2-jelly", visit: 2, x: 820, y: 500, title: "젤리 숙성법", text: "게와 곰젤리를 8시간 함께 재운다. 숙성이 아니라 간식통이다.", obviousFake: true },
+      { id: "shop-v2-supply", visit: 2, x: 960, y: 500, title: "포장용기 발주서", text: "대 100개, 중 200개, 소 100개.", flavor: true },
       { id: "shop-v2-lunch", visit: 2, x: 1320, y: 210, title: "직원 점심 메모", text: "오늘은 김치찌개. 사장님은 계란 추가.", flavor: true },
 
-      { id: "shop-v3-fake-reboil", visit: 3, x: 430, y: 250, title: "폐기된 실험표", text: "재가열 세 번. 결과 칸에는 ‘향 다 날아감’이라고 적혀 있다.", resolvesWith: ["shop-reboil", "final-rest"] },
-      { id: "shop-v3-fake-sweet", visit: 3, x: 820, y: 500, title: "신메뉴 테스트표", text: "꿀만 사용. 간장게장이 아니라 연근조림 테스트표다.", resolvesWith: ["shop-sweet", "home-sweetener"] },
-      { id: "shop-v3-temp", visit: 3, x: 960, y: 500, title: "냉장고 점검표", text: "3℃, 4℃, 3℃, 4℃. 레시피 숫자가 아니라 기기 점검 기록이다.", flavor: true },
-      { id: "shop-v3-call", visit: 3, x: 1320, y: 210, title: "전화 받을 사람", text: "세탁소, 거래처, 언니. 마지막 이름 때문에 괜히 신경 쓰인다.", flavor: true }
+      { id: "shop-v3-coffee", visit: 3, x: 430, y: 250, title: "카페라떼 게장", text: "우유와 에스프레소에 꽃게를 담가 하룻밤. 커피도 게장도 망치는 방법이다.", obviousFake: true },
+      { id: "shop-v3-hotchoco", visit: 3, x: 820, y: 500, title: "핫초코 양념장", text: "뜨거운 초코우유를 바로 붓는다. 누가 봐도 조리법이 아니다.", obviousFake: true },
+      { id: "shop-v3-temp", visit: 3, x: 960, y: 500, title: "냉장고 점검표", text: "3℃, 4℃, 3℃, 4℃. 기기 점검 기록이다.", flavor: true },
+      { id: "shop-v3-call", visit: 3, x: 1320, y: 210, title: "전화 받을 사람", text: "세탁소, 거래처, 언니. 그냥 연락 메모다.", flavor: true }
     ]
   };
 
   const FINAL_DECOYS = [
-    { id: "final-decoy-ratio", x: 365, y: 340, title: "엄마 필체를 흉내 낸 쪽지", text: "간장 2 : 물 1. 아래쪽 필압이 평소와 다르다.", resolvesWith: ["final-ratio"] },
-    { id: "final-decoy-aging", x: 780, y: 260, title: "오래된 게장 실험표", text: "12시간 숙성. 우측 상단에 ‘실패’ 도장이 희미하게 남아 있다.", resolvesWith: ["final-rest"] },
-    { id: "final-decoy-cool", x: 1010, y: 500, title: "찢어진 조리 메모", text: "끓인 뒤 바로 붓기. 뒷면에는 다른 사람의 필기가 이어진다.", resolvesWith: ["final-cool"] },
-    { id: "final-decoy-nonsense", x: 760, y: 650, title: "엄마의 진짜 비밀 메모?", text: "‘라먀니가 또 뒤지면 김치통부터 확인할 것.’ 레시피 대신 라먀니 얘기다.", flavor: true }
+    { id: "final-decoy-mint", x: 365, y: 340, title: "최종(?) 민트초코 게장", text: "원본인 척 접어 둔 종이지만 내용은 ‘민트초코 세 스쿱’. 바로 가짜다.", obviousFake: true },
+    { id: "final-decoy-ash", x: 780, y: 260, title: "최종(?) 담뱃재 비법", text: "‘담뱃재 한 줌으로 깊은 맛.’ 장난 쪽지라는 게 너무 뻔하다.", obviousFake: true },
+    { id: "final-decoy-mayo", x: 1010, y: 500, title: "최종(?) 마요네즈 숙성", text: "간장 없이 마요네즈 한 통에 꽃게를 묻는다. 속일 생각도 없어 보인다.", obviousFake: true },
+    { id: "final-decoy-nonsense", x: 760, y: 650, title: "엄마의 생활 메모", text: "‘라먀니가 또 뒤지면 김치통부터 확인할 것.’ 레시피가 아니라 라먀니 얘기다.", flavor: true }
   ];
 
   function pickDecoys(locationKey, visitIndex, day, rng) {
@@ -179,8 +179,8 @@
       y: slot.y,
       title: type === "binding" ? "포장끈" : "담배",
       text: type === "binding"
-        ? "오늘 지급품. 가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
-        : "오늘 지급품. 잠시 이동 속도가 크게 오른다. 대신 피울 때 기침 소리가 난다."
+        ? "오늘 맵 어딘가에 놓인 포장끈. 가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
+        : "오늘 맵 어딘가에 놓인 담배. 잠시 이동 속도가 크게 오른다. 대신 피울 때 기침 소리가 난다."
     }];
   }
 
