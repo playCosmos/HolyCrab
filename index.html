@@ -55,44 +55,23 @@
         <div id="journal-body"></div>
       </aside>
 
-      <section id="title" class="overlay">
-        <div class="panel title-panel">
-          <div class="title-copy">
-            <div class="logo">HOLY<em>CRAB</em></div>
-            <div class="subtitle">엄마의 간장게장 레시피를 훔쳐라</div>
-            <p class="desc">
-              하루 만에 훔칠 수 있는 레시피가 아니다.<br>
-              총 10일 동안 집은 3번, 전통시장과 단골 반찬가게는 합쳐 7번 방문하며
-              진짜 단서와 가짜 레시피, 의미 없는 생활 메모를 구분해 간다.<br><br>
-              초반에는 엄마만 피하면 되지만, 중후반부터는 수상한 낌새를 눈치챈
-              <strong>언니</strong>까지 추적에 합류한다. 매일 포장끈 또는 담배 중 하나가 맵 어딘가에 놓이며 직접 찾아 주워야 한다.
-            </p>
-            <div class="actions">
-              <button id="start-btn" class="primary">첫날 시작</button>
-            </div>
+      <section id="vn-scene" class="vn-scene">
+        <div class="vn-dim"></div>
+        <div id="vn-chapter" class="vn-chapter">PROLOGUE</div>
+        <img id="vn-character" class="vn-character" src="./assets/vn/ramyani.png" alt="">
+        <div class="vn-dialogue">
+          <div class="vn-topline">
+            <div id="vn-speaker" class="vn-speaker">라먀니</div>
+            <div id="vn-progress" class="vn-progress">1 / 1</div>
           </div>
-          <div class="portrait">
-            <img src="./assets/ramyani.svg" alt="라먀니 캐릭터">
-          </div>
-        </div>
-      </section>
-
-      <section id="stage-intro" class="overlay hidden">
-        <div class="panel day-panel">
-          <div id="stage-kicker" class="day-kicker">DAY 1 / 10</div>
-          <h1 id="stage-title">우리 집 — 장보기 흔적부터 찾아라</h1>
-          <p id="stage-desc"></p>
-          <div class="day-rules">
-            매일 맵에 아이템 1개가 배치되고 직접 주워야 한다. 황당한 가짜 레시피와 생활 메모는 진행 조건이 아니며, 들켜도 기록은 잃지 않지만 발각 횟수는 누적된다.
-          </div>
-          <div class="actions">
-            <button id="stage-begin" class="primary">오늘 시작</button>
-          </div>
+          <div id="vn-text" class="vn-text"></div>
+          <div id="vn-meta" class="vn-meta"></div>
+          <button id="vn-next" class="vn-next" type="button">다음 ▶</button>
         </div>
       </section>
 
       <section id="result" class="overlay hidden">
-        <div class="panel">
+        <div class="panel result-panel">
           <h1 id="result-title">작전 성공</h1>
           <p id="result-text"></p>
           <div class="result-stats">
@@ -111,6 +90,7 @@
   <script src="./src/core.js"></script>
   <script src="./src/mom-ai.js"></script>
   <script src="./src/stages.js"></script>
+  <script src="./src/story.js"></script>
   <script src="./src/game.js"></script>
 </body>
 </html>

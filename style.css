@@ -319,3 +319,173 @@ button:active { transform: translateY(0); }
     padding: 8px 9px;
   }
 }
+
+
+/* Reusable visual-novel presentation layer */
+.vn-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  overflow: hidden;
+  pointer-events: auto;
+  background:
+    radial-gradient(circle at 72% 24%, rgba(244,160,111,.12), transparent 34%),
+    linear-gradient(180deg, rgba(17,13,20,.38), rgba(10,8,12,.74));
+}
+.vn-scene.hidden { display: none; }
+.vn-dim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8,7,10,.18), rgba(8,7,10,.12) 48%, rgba(8,7,10,.62));
+  backdrop-filter: blur(2px);
+}
+.vn-chapter {
+  position: absolute;
+  left: 28px;
+  top: 26px;
+  z-index: 2;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,245,234,.18);
+  background: rgba(22,17,24,.76);
+  box-shadow: 0 8px 26px rgba(0,0,0,.26);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  color: rgba(255,245,234,.82);
+}
+.vn-character {
+  position: absolute;
+  z-index: 1;
+  right: clamp(4px, 5vw, 76px);
+  bottom: 112px;
+  height: min(82%, 700px);
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 24px 30px rgba(0,0,0,.38));
+  transform-origin: 50% 100%;
+  transition: opacity .16s ease, transform .16s ease, right .16s ease;
+}
+.vn-character[data-side="left"] {
+  right: auto;
+  left: clamp(4px, 5vw, 76px);
+}
+.vn-character.vn-pop {
+  animation: vn-pop .22s ease;
+}
+@keyframes vn-pop {
+  from { opacity: .3; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.vn-dialogue {
+  position: absolute;
+  z-index: 3;
+  left: 4.5%;
+  right: 4.5%;
+  bottom: 26px;
+  min-height: 154px;
+  padding: 26px 28px 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(30,24,31,.95), rgba(17,14,20,.97));
+  border: 1px solid rgba(255,245,234,.18);
+  box-shadow: 0 24px 55px rgba(0,0,0,.5);
+  backdrop-filter: blur(12px);
+}
+.vn-topline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.vn-speaker {
+  min-width: 90px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef9b77, #e47b8a);
+  color: #21171a;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+.vn-progress {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: .5;
+  letter-spacing: .08em;
+}
+.vn-text {
+  max-width: min(790px, 72%);
+  min-height: 54px;
+  font-size: clamp(17px, 1.55vw, 23px);
+  font-weight: 650;
+  line-height: 1.58;
+  letter-spacing: -.01em;
+  text-wrap: pretty;
+}
+.vn-meta {
+  max-width: min(800px, 74%);
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255,245,234,.62);
+}
+.vn-next {
+  position: absolute;
+  right: 22px;
+  bottom: 19px;
+  min-width: 96px;
+  background: linear-gradient(135deg, #f6b77e, #ef8d72);
+}
+.vn-scene[data-speaker="엄마"] .vn-speaker {
+  background: linear-gradient(135deg, #ead6c5, #dcb49b);
+}
+.vn-scene[data-speaker="언니"] .vn-speaker {
+  background: linear-gradient(135deg, #d1c4ee, #b49bdc);
+}
+.vn-scene[data-tone="caught"] .vn-dialogue {
+  border-color: rgba(239,102,111,.42);
+  box-shadow: 0 24px 60px rgba(76,16,24,.48);
+}
+.vn-scene[data-tone="summary"] .vn-dialogue {
+  border-color: rgba(159,214,138,.32);
+}
+.vn-scene[data-tone="ending"] .vn-dialogue {
+  border-color: rgba(246,183,126,.52);
+}
+
+@media (max-width: 760px) {
+  .vn-character {
+    height: 68%;
+    bottom: 146px;
+    right: -18px;
+    opacity: .86;
+  }
+  .vn-character[data-side="left"] {
+    left: -18px;
+  }
+  .vn-dialogue {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    min-height: 168px;
+    padding: 22px 18px 54px;
+  }
+  .vn-text, .vn-meta { max-width: 100%; }
+  .vn-text { font-size: 16px; }
+  .vn-next { right: 14px; bottom: 12px; }
+  .vn-chapter { left: 12px; top: 12px; }
+}
+
+.vn-summary-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 132px) 1fr;
+  gap: 12px;
+  padding: 4px 0;
+}
+.vn-summary-row b {
+  color: rgba(255,245,234,.86);
+  font-weight: 850;
+}
+.vn-summary-row span {
+  color: rgba(255,245,234,.64);
+}

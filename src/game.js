@@ -4,7 +4,8 @@
   const C = window.HolyCrabCore;
   const Campaign = window.HolyCrabStages;
   const AI = window.HolyCrabMomAI;
-  if (!C || !Campaign || !AI) throw new Error("HolyCrab modules failed to load.");
+  const Story = window.HolyCrabStory;
+  if (!C || !Campaign || !AI || !Story) throw new Error("HolyCrab modules failed to load.");
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -15,8 +16,14 @@
   canvas.height = H;
 
   const ui = {
-    title: document.getElementById("title"),
-    start: document.getElementById("start-btn"),
+    vnScene: document.getElementById("vn-scene"),
+    vnCharacter: document.getElementById("vn-character"),
+    vnChapter: document.getElementById("vn-chapter"),
+    vnSpeaker: document.getElementById("vn-speaker"),
+    vnProgress: document.getElementById("vn-progress"),
+    vnText: document.getElementById("vn-text"),
+    vnMeta: document.getElementById("vn-meta"),
+    vnNext: document.getElementById("vn-next"),
     missionLabel: document.getElementById("mission-label"),
     mission: document.getElementById("mission"),
     submission: document.getElementById("submission"),
@@ -32,11 +39,6 @@
     toast: document.getElementById("toast"),
     journal: document.getElementById("journal"),
     journalBody: document.getElementById("journal-body"),
-    stageIntro: document.getElementById("stage-intro"),
-    stageKicker: document.getElementById("stage-kicker"),
-    stageTitle: document.getElementById("stage-title"),
-    stageDesc: document.getElementById("stage-desc"),
-    stageBegin: document.getElementById("stage-begin"),
     result: document.getElementById("result"),
     resultTitle: document.getElementById("result-title"),
     resultText: document.getElementById("result-text"),
@@ -70,7 +72,7 @@
   let exitDoor = null;
   let watchers = [];
 
-  let gameState = "title";
+  let gameState = "vn";
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
@@ -84,6 +86,11 @@
   let toastTimer = 0;
   let footstepTimer = 0;
   let noiseRings = [];
+  let stageCaughtStart = 0;
+  let vnLines = [];
+  let vnIndex = 0;
+  let vnDone = null;
+  let vnTone = "story";
   let lastFrame = performance.now();
 
   class AudioEngine {
@@ -115,6 +122,68 @@
     click() { this.tone(360,.05,.018,"triangle"); }
   }
   const audio = new AudioEngine();
+
+  function renderVNLine() {
+    const line = vnLines[vnIndex];
+    if (!line) return;
+
+    const portraitKey = line.portrait || "ramyani";
+    ui.vnScene.dataset.speaker = line.speaker || "";
+    ui.vnScene.dataset.tone = line.tone || vnTone;
+    ui.vnCharacter.src = Story.PORTRAITS[portraitKey] || Story.PORTRAITS.ramyani;
+    ui.vnCharacter.alt = line.speaker || "";
+    ui.vnCharacter.dataset.side = line.side || (portraitKey === "ramyani" ? "right" : "left");
+    ui.vnCharacter.classList.toggle("hidden", !line.portrait);
+    ui.vnCharacter.classList.remove("vn-pop");
+    void ui.vnCharacter.offsetWidth;
+    ui.vnCharacter.classList.add("vn-pop");
+
+    ui.vnChapter.textContent = line.kicker || `DAY ${stage ? stage.day : 1} / ${stage ? stage.totalDays : 10}`;
+    ui.vnSpeaker.textContent = line.speaker || "";
+    ui.vnText.textContent = line.text || "";
+    ui.vnProgress.textContent = `${vnIndex + 1} / ${vnLines.length}`;
+
+    if (Array.isArray(line.summary) && line.summary.length) {
+      ui.vnMeta.innerHTML = line.summary
+        .map(([key, value]) => `<span class="vn-summary-row"><b>${key}</b><span>${value}</span></span>`)
+        .join("");
+    } else {
+      ui.vnMeta.textContent = "";
+    }
+
+    ui.vnNext.textContent = vnIndex === vnLines.length - 1 ? `${line.button || "계속"} ▶` : "다음 ▶";
+  }
+
+  function showVN(lines, onDone, options = {}) {
+    vnLines = lines.filter(Boolean);
+    vnIndex = 0;
+    vnDone = typeof onDone === "function" ? onDone : null;
+    vnTone = options.tone || "story";
+    gameState = "vn";
+    ui.journal.classList.add("hidden");
+    ui.prompt.classList.remove("show");
+    ui.vnScene.classList.remove("hidden");
+    renderVNLine();
+  }
+
+  function nextVN() {
+    if (gameState !== "vn") return;
+    audio.ensure();
+    audio.click();
+
+    if (vnIndex < vnLines.length - 1) {
+      vnIndex += 1;
+      renderVNLine();
+      return;
+    }
+
+    ui.vnScene.classList.add("hidden");
+    const done = vnDone;
+    vnDone = null;
+    vnLines = [];
+    vnIndex = 0;
+    if (done) done();
+  }
 
   function makeWatcher(role, spawn, patrol, config, color, inheritedAlert) {
     return {
@@ -207,14 +276,13 @@
     updateMission();
     updateSuspicionUI();
 
+    stageCaughtStart = caught;
     if (showIntro) {
-      gameState = "stageIntro";
-      ui.stageKicker.textContent = stage.kicker;
-      ui.stageTitle.textContent = `${stage.name} — ${stage.introTitle}`;
-      ui.stageDesc.textContent = stage.intro + (stage.sisterActive ? " 이번 날부터는 언니도 주변을 돌아다닌다." : "");
-      ui.stageBegin.textContent = stage.day === 1 ? "첫날 시작" : `DAY ${stage.day} 시작`;
-      ui.stageIntro.classList.remove("hidden");
       audio.stage();
+      showVN(Story.dayIntro(stage), () => {
+        gameState = "playing";
+        showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
+      });
     } else {
       gameState = "playing";
     }
@@ -232,21 +300,39 @@
     caught = 0;
     elapsed = 0;
     ui.result.classList.add("hidden");
-    loadStage(0, true);
+    loadStage(0, false);
+    updateInventoryUI();
+
+    showVN(Story.opening(), () => {
+      audio.stage();
+      showVN(Story.dayIntro(stage), () => {
+        gameState = "playing";
+        showToast("DAY 1 · 첫 작전을 시작한다.", 2.2);
+      });
+    });
   }
 
-  function beginStage() {
-    ui.stageIntro.classList.add("hidden");
-    gameState = "playing";
-    showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.5);
-  }
-
-  function advanceStage() {
+  function completeDay() {
     if (stageIndex >= campaign.stages.length - 1) {
       finishRun();
       return;
     }
-    loadStage(stageIndex + 1, true);
+
+    const item = stage.items && stage.items[0];
+    const data = {
+      day: stage.day,
+      location: stage.name,
+      dayCaught: caught - stageCaughtStart,
+      cluesFound: stageClueCount(),
+      clueTotal: clueDefs.length,
+      decoysFound: decoyDefs.filter(d => collected[d.id]).length,
+      itemPicked: !!(item && pickedItems[item.id]),
+      itemName: item ? item.title : "아이템"
+    };
+
+    showVN(Story.daySummary(data), () => {
+      loadStage(stageIndex + 1, true);
+    }, { tone: "summary" });
   }
 
   function showToast(text, seconds = 2.4) {
@@ -408,23 +494,32 @@
         }
         finishRun();
       } else {
-        advanceStage();
+        completeDay();
       }
     }
   }
 
   function finishRun() {
-    gameState = "result";
     const rank = rankCampaign();
     ui.resultRank.textContent = `${rank.rank} · ${rank.label}`;
     ui.resultTime.textContent = C.formatTime(elapsed);
     ui.resultCaught.textContent = `${caught}회`;
-    ui.resultTitle.textContent = "며칠간의 작전 성공 — Holy Crab!";
+    ui.resultTitle.textContent = "10일 작전 성공";
     ui.resultText.textContent = caught === 0
-      ? "라먀니는 여러 날에 걸쳐 집, 시장, 반찬가게를 오가며 조각을 모으고 끝내 원본 레시피까지 빼냈다. 마지막 장에는 ‘여기까지 따라올 줄 알았어. 다음엔 그냥 물어봐.’라는 엄마의 메모가 있었다."
-      : "엄마와 언니에게 몇 번 들키긴 했지만 라먀니는 끝내 레시피를 완성했다. 현관에는 밥 한 공기와 메모가 놓여 있었다. ‘훔쳐봤으면 설거지는 네가 해.’";
-    ui.result.classList.remove("hidden");
+      ? "발각 없이 10일간의 추적을 끝내고 원본 레시피까지 확보했다."
+      : "몇 번 들키긴 했지만 끝내 원본 레시피를 확보했다.";
     audio.success();
+
+    showVN(Story.ending({
+      rank: rank.rank,
+      label: rank.label,
+      time: C.formatTime(elapsed),
+      caught,
+      sisterSeen: campaign.stages.some(s => s.sisterActive)
+    }), () => {
+      gameState = "result";
+      ui.result.classList.remove("hidden");
+    }, { tone: "ending" });
   }
 
   function caughtBy(watcher) {
@@ -451,7 +546,11 @@
     }
 
     audio.alert();
-    showToast(`${watcher.name}: “라먀니, 지금 뭐 해?” — 오늘 시작점으로 복귀. 이미 모은 단서는 유지된다.`, 3);
+    showVN(Story.caught(watcher.role, caught), () => {
+      freeze = 0;
+      gameState = "playing";
+      showToast("작전 재개 · 이미 확보한 기록은 유지된다.", 1.8);
+    }, { tone: "caught" });
   }
 
   function updatePlayer(dt) {
@@ -1063,6 +1162,10 @@
     if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space"].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
     if (e.repeat) return;
+    if (gameState === "vn" && ["Space", "Enter", "KeyE"].includes(e.code)) {
+      nextVN();
+      return;
+    }
     if (e.code === "KeyE") interact();
     if (e.code === "Digit1") useBindingItem();
     if (e.code === "Digit2") useCigarette();
@@ -1072,13 +1175,15 @@
   window.addEventListener("keyup", e => { keys[e.code] = false; });
   window.addEventListener("blur", () => Object.keys(keys).forEach(k => delete keys[k]));
 
-  ui.start.addEventListener("click", () => {
-    audio.ensure();
-    ui.title.classList.add("hidden");
-    startCampaign();
+  ui.vnNext.addEventListener("click", event => {
+    event.stopPropagation();
+    nextVN();
   });
 
-  ui.stageBegin.addEventListener("click", beginStage);
+  ui.vnScene.addEventListener("click", event => {
+    if (event.target.closest("button")) return;
+    nextVN();
+  });
 
   ui.restart.addEventListener("click", () => {
     audio.ensure();
@@ -1086,10 +1191,10 @@
     startCampaign();
   });
 
-  loadStage(0, false);
-  gameState = "title";
+  startCampaign();
   renderJournal();
   updateMission();
   updateInventoryUI();
   requestAnimationFrame(frame);
+
 })();
