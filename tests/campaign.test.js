@@ -77,7 +77,7 @@ test("each day mixes required clues with decoy or irrelevant records", () => {
       assert.equal(required.has(decoy.id), false);
       assert.equal(ids.has(decoy.id), false);
       ids.add(decoy.id);
-      assert.ok(decoy.flavor || Array.isArray(decoy.resolvesWith));
+      assert.ok(decoy.flavor || decoy.obviousFake);
     }
   }
 });
@@ -92,7 +92,7 @@ test("later days increase misleading record density", () => {
   }
 });
 
-test("campaign grants exactly one item per day with balanced types", () => {
+test("campaign places exactly one collectible item per day with balanced types", () => {
   const c = Campaign.generateCampaign("item-seed");
   assert.equal(c.stages.length, 10);
 
