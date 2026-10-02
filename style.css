@@ -298,3 +298,45 @@ button:active { transform: translateY(0); }
   #alert-stack { width: 176px; }
   .suspicion-card { padding: 8px 9px; }
 }
+
+
+#inventory {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 7;
+  min-width: 190px;
+  padding: 10px 12px;
+  pointer-events: none;
+}
+.inventory-title {
+  margin-bottom: 7px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  opacity: .68;
+}
+.inventory-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+.boost-status {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255,255,255,.09);
+  color: #f1c87c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  #inventory {
+    right: 10px;
+    bottom: 10px;
+    min-width: 155px;
+    padding: 8px 9px;
+  }
+}
