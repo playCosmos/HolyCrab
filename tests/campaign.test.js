@@ -92,17 +92,27 @@ test("later days increase misleading record density", () => {
   }
 });
 
-test("campaign provides both restraint and cigarette items", () => {
+test("campaign grants exactly one item per day with balanced types", () => {
   const c = Campaign.generateCampaign("item-seed");
-  const items = c.stages.flatMap(stage => stage.items);
-  assert.ok(items.filter(item => item.type === "binding").length >= 5);
-  assert.ok(items.filter(item => item.type === "cigarette").length >= 5);
+  assert.equal(c.stages.length, 10);
 
-  for (const item of items) {
+  const items = [];
+  for (const stage of c.stages) {
+    assert.equal(stage.items.length, 1);
+    const item = stage.items[0];
+    items.push(item);
     assert.ok(Number.isFinite(item.x));
     assert.ok(Number.isFinite(item.y));
     assert.ok(["binding", "cigarette"].includes(item.type));
   }
+
+  assert.equal(items.filter(item => item.type === "binding").length, 5);
+  assert.equal(items.filter(item => item.type === "cigarette").length, 5);
+
+  c.stages.forEach((stage, index) => {
+    const expected = (index + 1) % 2 === 1 ? "binding" : "cigarette";
+    assert.equal(stage.items[0].type, expected);
+  });
 });
 
 test("AI remembers last seen position and enters chase", () => {
