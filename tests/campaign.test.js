@@ -55,3 +55,17 @@ test("AI creates a bounded local search pattern", () => {
     assert.ok(p.y >= 28 && p.y <= 72);
   }
 });
+
+
+test("campaign guarantees one home revisit in each middle half", () => {
+  const seeds = ["home-a", "home-b", "home-c", "home-d", "home-e"];
+  for (const seed of seeds) {
+    const c = Campaign.generateCampaign(seed);
+    const days2to4 = c.stages.slice(1, 4).map(s => s.locationKey);
+    const days5to7 = c.stages.slice(4, 7).map(s => s.locationKey);
+    assert.equal(days2to4.filter(x => x === "home").length, 1);
+    assert.equal(days5to7.filter(x => x === "home").length, 1);
+    assert.deepEqual(new Set(days2to4), new Set(["home", "market", "banchan"]));
+    assert.deepEqual(new Set(days5to7), new Set(["home", "market", "banchan"]));
+  }
+});
