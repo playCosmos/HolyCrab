@@ -14,7 +14,7 @@ test("opening explains mission, controls, and daily item use", () => {
   assert.match(text, /담배/);
   assert.ok(scenes.some(s => s.portrait === "mom"));
   assert.equal(scenes.length, 6);
-  assert.doesNotMatch(text, /민트초코|담뱃재|치약/);
+  assert.doesNotMatch(text, /민트초코|담뱃재|치약|언니/);
 });
 
 test("day five intro brings in sister", () => {
@@ -28,6 +28,7 @@ test("day five intro brings in sister", () => {
     sisterActive: true
   });
   assert.ok(scenes.some(s => s.speaker === "언니" && s.portrait === "sister"));
+  assert.ok(scenes.some(s => /집순이 언니|엄마와 언니/.test(s.text)));
   assert.ok(scenes.at(-1).summary.some(([k]) => k === "아이템"));
 });
 
