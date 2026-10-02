@@ -371,6 +371,10 @@
       }
     }
 
+    if (bestScore > 0) {
+      best = ["market", "banchan", "home", "market", "banchan", "home"];
+    }
+
     const route = ["home", ...best];
     const totalDays = route.length + 1;
     const counts = { home: 0, market: 0, banchan: 0 };
