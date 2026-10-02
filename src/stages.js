@@ -102,7 +102,17 @@
       { id: "market-v1-fake-aroma", visit: 1, x: 380, y: 405, title: "채소가게 추천표", text: "게장에는 생강 대신 고수? 사장님의 실험 메뉴 추천인 듯하다.", resolvesWith: ["market-aromatics", "home-aromatics"] },
       { id: "market-v1-fake-sweet", visit: 1, x: 710, y: 515, title: "시럽 판촉 카드", text: "‘설탕만 쓰면 충분!’ 특정 상품 광고 문구라 신뢰하기 어렵다.", resolvesWith: ["market-maesil", "home-sweetener", "shop-sweet"] },
       { id: "market-v1-delivery", visit: 1, x: 1080, y: 420, title: "상인 배송 목록", text: "멸치 3박스, 김 5묶음, 종이컵 2줄. 엄마 주문은 아니다.", flavor: true },
-      { id: "market-v1-phone", visit: 1, x: 1338, y: 340, title: "분실물 연락처", text: "‘빨간 우산 주인 010-XXXX…’. 수상해 보였지만 정말 분실물 메모다.", flavor: true }
+      { id: "market-v1-phone", visit: 1, x: 1338, y: 340, title: "분실물 연락처", text: "‘빨간 우산 주인 010-XXXX…’. 수상해 보였지만 정말 분실물 메모다.", flavor: true },
+
+      { id: "market-v2-fake-salt", visit: 2, x: 390, y: 405, title: "소금가게 메모", text: "소금을 한 줌 넣으면 간장이 덜 짜진다? 무슨 뜻인지 앞뒤가 맞지 않는다.", resolvesWith: ["market-balance", "final-ratio"] },
+      { id: "market-v2-fake-fruit", visit: 2, x: 720, y: 520, title: "과일청 홍보 카드", text: "사과청만 넣으면 다른 단맛 재료는 필요 없다는 광고 문구.", resolvesWith: ["market-maesil", "shop-sweet"] },
+      { id: "market-v2-receipt", visit: 2, x: 1080, y: 420, title: "남의 영수증", text: "두부, 파, 꽁치, 고무장갑. 엄마 장바구니와 상관없는 영수증이다.", flavor: true },
+      { id: "market-v2-event", visit: 2, x: 1340, y: 340, title: "시장 노래자랑 안내", text: "예선 접수 오후 3시. 레시피 암호처럼 보이는 숫자는 참가 번호였다.", flavor: true },
+
+      { id: "market-v3-fake-crab", visit: 3, x: 390, y: 405, title: "냉동 꽃게 특가표", text: "게장은 무조건 냉동 꽃게가 낫다는 과장된 특가 문구.", resolvesWith: ["market-crab", "market-freshness"] },
+      { id: "market-v3-fake-ratio", visit: 3, x: 720, y: 520, title: "옆집 간장소스 비율", text: "간장 1 : 물 3. 게장이 아니라 불고기 소스 비율인 것 같다.", resolvesWith: ["market-soy-ratio", "final-ratio"] },
+      { id: "market-v3-number", visit: 3, x: 1080, y: 420, title: "상자에 적힌 숫자", text: "24 / 12 / 8. 숙성 시간처럼 보였지만 박스 수량 표시다.", flavor: true },
+      { id: "market-v3-coupon", visit: 3, x: 1340, y: 340, title: "단골 쿠폰", text: "열 번 사면 한 번 할인. 엄마가 오래 다닌 가게라는 것만 알 수 있다.", flavor: true }
     ],
 
     banchan: [
@@ -114,7 +124,17 @@
       { id: "shop-v1-fake-aging", visit: 1, x: 430, y: 250, title: "구형 숙성 라벨", text: "12시간 / 테스트 배치. 지금도 쓰는 기준인지는 알 수 없다.", resolvesWith: ["shop-aging", "home-first-rest", "final-rest"] },
       { id: "shop-v1-fake-reboil", visit: 1, x: 820, y: 500, title: "실험 배치 체크표", text: "간장 재가열 생략. 결과 칸에는 ‘별로’라고 적혀 있다.", resolvesWith: ["shop-reboil", "home-reboil", "final-rest"] },
       { id: "shop-v1-staff", visit: 1, x: 960, y: 500, title: "직원 교대표", text: "화요일 오후: 민지, 수요일 오전: 사장님. 레시피 암호는 아니었다.", flavor: true },
-      { id: "shop-v1-price", visit: 1, x: 1320, y: 210, title: "가격 수정표", text: "오징어젓 +500원, 깻잎무침 +300원. 숫자가 많아 괜히 중요한 문서처럼 보인다.", flavor: true }
+      { id: "shop-v1-price", visit: 1, x: 1320, y: 210, title: "가격 수정표", text: "오징어젓 +500원, 깻잎무침 +300원. 숫자가 많아 괜히 중요한 문서처럼 보인다.", flavor: true },
+
+      { id: "shop-v2-fake-rest", visit: 2, x: 430, y: 250, title: "다른 절임반찬 작업표", text: "숙성 8시간. 간장게장 표가 아니라 장아찌 작업표였다.", resolvesWith: ["shop-aging", "final-rest"] },
+      { id: "shop-v2-fake-cool", visit: 2, x: 820, y: 500, title: "급속 작업 메모", text: "끓인 소스를 바로 사용. 옆 칸 품목은 닭강정이다.", resolvesWith: ["shop-cool", "final-cool"] },
+      { id: "shop-v2-supply", visit: 2, x: 960, y: 500, title: "포장용기 발주서", text: "대 100개, 중 200개, 소 100개. 중요한 비율처럼 보이는 숫자뿐이다.", flavor: true },
+      { id: "shop-v2-lunch", visit: 2, x: 1320, y: 210, title: "직원 점심 메모", text: "오늘은 김치찌개. 사장님은 계란 추가.", flavor: true },
+
+      { id: "shop-v3-fake-reboil", visit: 3, x: 430, y: 250, title: "폐기된 실험표", text: "재가열 세 번. 결과 칸에는 ‘향 다 날아감’이라고 적혀 있다.", resolvesWith: ["shop-reboil", "final-rest"] },
+      { id: "shop-v3-fake-sweet", visit: 3, x: 820, y: 500, title: "신메뉴 테스트표", text: "꿀만 사용. 간장게장이 아니라 연근조림 테스트표다.", resolvesWith: ["shop-sweet", "home-sweetener"] },
+      { id: "shop-v3-temp", visit: 3, x: 960, y: 500, title: "냉장고 점검표", text: "3℃, 4℃, 3℃, 4℃. 레시피 숫자가 아니라 기기 점검 기록이다.", flavor: true },
+      { id: "shop-v3-call", visit: 3, x: 1320, y: 210, title: "전화 받을 사람", text: "세탁소, 거래처, 언니. 마지막 이름 때문에 괜히 신경 쓰인다.", flavor: true }
     ]
   };
 
@@ -132,6 +152,43 @@
       const out = clone(x);
       delete out.visit;
       return out;
+    });
+  }
+
+  const ITEM_SLOTS = {
+    home: [
+      { x: 250, y: 340 }, { x: 720, y: 270 }, { x: 860, y: 650 }, { x: 1260, y: 500 }
+    ],
+    market: [
+      { x: 390, y: 400 }, { x: 720, y: 400 }, { x: 1080, y: 400 }, { x: 1350, y: 400 }
+    ],
+    banchan: [
+      { x: 430, y: 250 }, { x: 820, y: 520 }, { x: 970, y: 220 }, { x: 1320, y: 520 }
+    ]
+  };
+
+  function makeItems(locationKey, day, rng, final = false) {
+    const slots = shuffle(ITEM_SLOTS[locationKey] || [], rng);
+    const types = final
+      ? ["binding", "cigarette"]
+      : [day % 2 === 1 ? "binding" : "cigarette"];
+
+    if (!final && day >= 5 && rng() < .45) {
+      types.push(types[0] === "binding" ? "cigarette" : "binding");
+    }
+
+    return types.map((type, i) => {
+      const slot = slots[i % Math.max(1, slots.length)] || { x: 720, y: 400 };
+      return {
+        id: `item-${day}-${locationKey}-${i}-${type}`,
+        type,
+        x: slot.x,
+        y: slot.y,
+        title: type === "binding" ? "포장끈" : "담배",
+        text: type === "binding"
+          ? "가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
+          : "잠시 이동 속도가 크게 오른다. 대신 피울 때 기침 소리가 난다."
+      };
     });
   }
 
@@ -337,6 +394,48 @@
     }
   };
 
+  LOCATIONS.market.visits.push(
+    {
+      title: "시장 상인들의 기억을 맞춰라",
+      intro: "몇 번이나 같은 시장을 돌다 보니 상인마다 엄마에 대해 조금씩 다른 말을 한다. 실제 구매 흔적과 대화를 대조해 보자.",
+      objective: "구매 습관 교차 확인",
+      clues: [
+        { id: "market-balance", x: 365, y: 185, title: "장류 가게 단골 기록", text: "진간장과 물을 같은 양에서 시작한 뒤 향채와 단맛으로 조정한다는 주문 습관이 반복된다." },
+        { id: "market-freshness", x: 1034, y: 184, title: "꽃게집 단골 표시", text: "엄마는 냉동 특가보다 당일 상태가 좋은 꽃게를 우선해서 고른다." }
+      ]
+    },
+    {
+      title: "마지막 장보기 흔적을 확인하라",
+      intro: "이제 시장에서 찾는 건 새로운 비법보다 기존 조각의 재확인이다. 가짜 메모에 속지 않고 반복되는 패턴을 골라내자.",
+      objective: "시장 단서 최종 검증",
+      clues: [
+        { id: "market-repeat-ratio", x: 690, y: 236, title: "반복 주문 기록", text: "서로 다른 날짜의 주문표에도 간장과 물을 같은 양으로 시작한다는 기록이 남아 있다." },
+        { id: "market-repeat-aroma", x: 326, y: 545, title: "향채 재구매 영수증", text: "양파 · 대파 · 마늘 · 생강 묶음을 다시 샀다. 일회성 조합이 아니었다." }
+      ]
+    }
+  );
+
+  LOCATIONS.banchan.visits.push(
+    {
+      title: "사장님의 수정 흔적을 추적하라",
+      intro: "반찬가게에는 실패한 시험표가 너무 많다. 최종적으로 살아남은 조리 순서가 무엇인지 수정 이력을 따라간다.",
+      objective: "폐기안과 현재 작업법 구분",
+      clues: [
+        { id: "shop-current-cool", x: 1110, y: 170, title: "현재 작업표 재확인", text: "현재 사용하는 간장게장 작업표에는 ‘완전히 식힌 뒤 붓기’가 굵게 표시돼 있다." },
+        { id: "shop-current-rest", x: 1380, y: 355, title: "최근 숙성 라벨", text: "최근 날짜의 배치들도 1차 24시간 기준으로 반복된다." }
+      ]
+    },
+    {
+      title: "마지막 조리 흔적을 확인하라",
+      intro: "최종 작전 전 마지막 방문. 재가열과 2차 숙성이 실제 반복 공정인지 확인한다.",
+      objective: "재가열·2차 숙성 최종 검증",
+      clues: [
+        { id: "shop-repeat-reboil", x: 1120, y: 470, title: "연속 배치 체크표", text: "여러 배치 모두 1차 뒤 게를 건지고 간장물만 다시 끓이는 순서를 따른다." },
+        { id: "shop-second-rest", x: 825, y: 108, title: "2차 숙성 라벨", text: "재가열한 간장물을 완전히 식혀 다시 부은 뒤 2차 숙성으로 넘어간다." }
+      ]
+    }
+  );
+
   const FINAL_CLUES = [
     { id: "final-ratio", x: 500, y: 82, title: "원본 · 배합", text: "진간장 : 물 = 1 : 1에서 시작하고 향채와 단맛 재료로 균형을 맞춘다." },
     { id: "final-cool", x: 1314, y: 318, title: "원본 · 냉각", text: "끓인 간장물은 게에 붓기 전 완전히 식힌다." },
@@ -362,6 +461,7 @@
     stage.clues = clone(visit.clues);
     stage.decoys = pickDecoys(locationKey, visitIndex, day, rng);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
+    stage.items = makeItems(locationKey, day, rng, false);
     stage.sisterActive = !!sisterActive;
     stage.safe = null;
     stage.ai = {
@@ -399,6 +499,7 @@
     stage.clues = clone(FINAL_CLUES);
     stage.decoys = shuffle(FINAL_DECOYS, rng).slice(0, 3).map(clone);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
+    stage.items = makeItems("home", day, rng, true);
     stage.sisterActive = true;
     stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
@@ -407,12 +508,14 @@
     return stage;
   }
 
-  function scoreRoute(route) {
+  function routePenalty(route) {
     let score = 0;
     for (let i = 1; i < route.length; i += 1) {
-      if (route[i] === route[i - 1]) score += 4;
+      if (route[i] === route[i - 1]) score += 6;
     }
-    if (route[0] === "home") score += 3;
+    // Keep the single mid-campaign home visit away from the opening/finale boundaries when possible.
+    const midHome = route.slice(1, -1).indexOf("home") + 1;
+    if (midHome > 0 && (midHome < 3 || midHome > route.length - 4)) score += 2;
     return score;
   }
 
@@ -420,28 +523,32 @@
     const seed = hashSeed(seedValue == null ? Date.now() : seedValue);
     const rng = mulberry32(seed);
 
-    // Day 1 is always home.
-    // Days 2-4 and Days 5-7 each contain exactly one home, one market, and one banchan visit.
-    // This guarantees that the player returns home in both the early-middle and late-middle campaign,
-    // rather than seeing home only at the opening and finale.
-    let early = shuffle(["home", "market", "banchan"], rng);
-    for (let i = 0; i < 12 && early[0] === "home"; i += 1) {
-      early = shuffle(["home", "market", "banchan"], rng);
-    }
-    if (early[0] === "home") early = ["market", "home", "banchan"];
+    // Total 10 days:
+    // - home exactly 3 times: opening, one shuffled mid-campaign revisit, finale
+    // - market + banchan exactly 7 times, split 4/3 in a seeded random direction
+    const marketCount = rng() < .5 ? 4 : 3;
+    const banchanCount = 7 - marketCount;
+    const middleBase = [
+      "home",
+      ...Array(marketCount).fill("market"),
+      ...Array(banchanCount).fill("banchan")
+    ];
 
-    let late = shuffle(["home", "market", "banchan"], rng);
-    for (let i = 0; i < 12 && late[0] === early[2]; i += 1) {
-      late = shuffle(["home", "market", "banchan"], rng);
-    }
-    if (late[0] === early[2]) {
-      late = late[0] === "home"
-        ? ["market", "home", "banchan"]
-        : ["home", "market", "banchan"];
+    let best = middleBase.slice();
+    let bestScore = Infinity;
+    for (let i = 0; i < 160; i += 1) {
+      const candidate = shuffle(middleBase, rng);
+      const full = ["home", ...candidate, "home"];
+      const score = routePenalty(full);
+      if (score < bestScore) {
+        best = candidate;
+        bestScore = score;
+        if (score === 0) break;
+      }
     }
 
-    const route = ["home", ...early, ...late];
-    const totalDays = route.length + 1;
+    const route = ["home", ...best];
+    const totalDays = 10;
     const counts = { home: 0, market: 0, banchan: 0 };
     const stages = [];
 
@@ -452,7 +559,7 @@
     });
 
     stages.push(makeFinal(totalDays, totalDays, rng));
-    return { seed, route: stages.map(s => s.locationKey), stages };
+    return { seed, route: stages.map(stage => stage.locationKey), stages };
   }
 
   function validateStage(stage) {
@@ -466,6 +573,7 @@
     }
     if (!Array.isArray(stage.clues) || stage.clues.length < 1) return { ok: false, reason: "no clues" };
     if (!Array.isArray(stage.decoys)) return { ok: false, reason: "decoys missing" };
+    if (!Array.isArray(stage.items)) return { ok: false, reason: "items missing" };
     if (!Array.isArray(stage.entries) || stage.entries.length !== stage.clues.length + stage.decoys.length) {
       return { ok: false, reason: "evidence entries invalid" };
     }
