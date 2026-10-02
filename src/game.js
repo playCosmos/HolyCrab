@@ -4,7 +4,8 @@
   const C = window.HolyCrabCore;
   const Campaign = window.HolyCrabStages;
   const AI = window.HolyCrabMomAI;
-  if (!C || !Campaign || !AI) throw new Error("HolyCrab modules failed to load.");
+  const Story = window.HolyCrabStory;
+  if (!C || !Campaign || !AI || !Story) throw new Error("HolyCrab modules failed to load.");
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -89,6 +90,7 @@
   let vnLines = [];
   let vnIndex = 0;
   let vnDone = null;
+  let vnTone = "story";
   let lastFrame = performance.now();
 
   class AudioEngine {
@@ -121,42 +123,46 @@
   }
   const audio = new AudioEngine();
 
-  const VN_CHARACTERS = {
-    ramyani: { name: "라먀니", src: "./assets/vn/ramyani.png", side: "right" },
-    mom: { name: "엄마", src: "./assets/vn/mom.png", side: "left" },
-    sister: { name: "언니", src: "./assets/vn/sister.png", side: "left" }
-  };
-
   function renderVNLine() {
     const line = vnLines[vnIndex];
     if (!line) return;
 
-    const character = VN_CHARACTERS[line.character || "ramyani"] || VN_CHARACTERS.ramyani;
-    ui.vnScene.dataset.speaker = line.speaker || character.name;
-    ui.vnScene.dataset.tone = line.tone || "story";
-    ui.vnCharacter.src = character.src;
-    ui.vnCharacter.alt = character.name;
-    ui.vnCharacter.dataset.side = line.side || character.side;
+    const portraitKey = line.portrait || "ramyani";
+    ui.vnScene.dataset.speaker = line.speaker || "";
+    ui.vnScene.dataset.tone = line.tone || vnTone;
+    ui.vnCharacter.src = Story.PORTRAITS[portraitKey] || Story.PORTRAITS.ramyani;
+    ui.vnCharacter.alt = line.speaker || "";
+    ui.vnCharacter.dataset.side = line.side || (portraitKey === "ramyani" ? "right" : "left");
+    ui.vnCharacter.classList.toggle("hidden", !line.portrait);
     ui.vnCharacter.classList.remove("vn-pop");
     void ui.vnCharacter.offsetWidth;
     ui.vnCharacter.classList.add("vn-pop");
 
-    ui.vnChapter.textContent = line.chapter || `DAY ${stage ? stage.day : 1} / ${stage ? stage.totalDays : 10}`;
-    ui.vnSpeaker.textContent = line.speaker || character.name;
+    ui.vnChapter.textContent = line.kicker || `DAY ${stage ? stage.day : 1} / ${stage ? stage.totalDays : 10}`;
+    ui.vnSpeaker.textContent = line.speaker || "";
     ui.vnText.textContent = line.text || "";
-    ui.vnMeta.textContent = line.meta || "";
     ui.vnProgress.textContent = `${vnIndex + 1} / ${vnLines.length}`;
-    ui.vnNext.textContent = vnIndex === vnLines.length - 1 ? (line.endLabel || "계속 ▶") : "다음 ▶";
+
+    if (Array.isArray(line.summary) && line.summary.length) {
+      ui.vnMeta.innerHTML = line.summary
+        .map(([key, value]) => `<span class="vn-summary-row"><b>${key}</b><span>${value}</span></span>`)
+        .join("");
+    } else {
+      ui.vnMeta.textContent = "";
+    }
+
+    ui.vnNext.textContent = vnIndex === vnLines.length - 1 ? `${line.button || "계속"} ▶` : "다음 ▶";
   }
 
   function showVN(lines, onDone, options = {}) {
     vnLines = lines.filter(Boolean);
     vnIndex = 0;
     vnDone = typeof onDone === "function" ? onDone : null;
+    vnTone = options.tone || "story";
     gameState = "vn";
     ui.journal.classList.add("hidden");
+    ui.prompt.classList.remove("show");
     ui.vnScene.classList.remove("hidden");
-    if (options.tone) ui.vnScene.dataset.tone = options.tone;
     renderVNLine();
   }
 
@@ -177,152 +183,6 @@
     vnLines = [];
     vnIndex = 0;
     if (done) done();
-  }
-
-  function campaignIntroLines() {
-    return [
-      {
-        character: "ramyani",
-        chapter: "작전 개시",
-        text: "좋아. 이번 목표는 엄마가 절대 안 알려주는 간장게장 레시피를 직접 모으는 거야.",
-        meta: "10일 동안 집은 3번, 시장과 반찬가게는 합쳐 7번 방문한다."
-      },
-      {
-        character: "ramyani",
-        chapter: "기본 이동",
-        text: "WASD나 방향키로 움직이고, Shift를 누르면 천천히 살금살금 걸을 수 있어.",
-        meta: "빨리 움직일수록 발소리가 커지고 엄마와 언니가 소리를 확인하러 온다."
-      },
-      {
-        character: "ramyani",
-        chapter: "조사",
-        text: "수상한 곳에서는 E. 메모를 조사하고, 아이템을 줍고, 숨을 곳에 들어가는 것도 E야.",
-        meta: "Tab으로 지금까지 모은 기록을 확인한다. 황당한 가짜 레시피는 진행 조건이 아니다."
-      },
-      {
-        character: "ramyani",
-        chapter: "아이템",
-        text: "매일 맵 어딘가에 아이템이 딱 하나 있어. 포장끈은 1번, 담배는 2번 키로 사용해.",
-        meta: "포장끈은 가까운 추적자를 8초 묶고, 담배는 7초간 +45% 속도 대신 기침 소음을 낸다."
-      },
-      {
-        character: "mom",
-        chapter: "엄마",
-        text: "라먀니야. 요즘 부엌을 왜 그렇게 자주 들여다보니?",
-        meta: "엄마는 시야와 소리를 기억하고, 놓친 자리 주변까지 수색한다."
-      },
-      {
-        character: "ramyani",
-        chapter: "작전 개시",
-        text: "아무것도 아니야! …좋아, 들켜도 모은 기록은 남지만 발각 횟수는 쌓여. 최대한 조용히 가자.",
-        meta: "Day 5부터는 언니까지 별도의 시야·청각·수색 AI로 합류한다.",
-        endLabel: "DAY 1로 ▶"
-      }
-    ];
-  }
-
-  function dayIntroLines() {
-    const item = stage.items && stage.items[0];
-    const itemName = item ? item.title : "아이템";
-    const lines = [
-      {
-        character: "ramyani",
-        chapter: `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`,
-        text: stage.intro,
-        meta: `오늘 목표: ${stage.objective}`
-      },
-      {
-        character: "ramyani",
-        chapter: `DAY ${stage.day} 준비`,
-        text: `오늘도 핵심 단서를 찾고 빠져나오자. 그리고 ${itemName} 1개가 이 맵 어딘가에 놓여 있어.`,
-        meta: "가짜 레시피와 생활 메모는 조사할 수 있지만 진행에는 필요 없다."
-      }
-    ];
-
-    if (stage.day === 5 && stage.sisterActive) {
-      lines.push({
-        character: "sister",
-        chapter: "새로운 감시자",
-        text: "요즘 너 계속 어디 돌아다니는 거야? 엄마도 이상하다고 하던데.",
-        meta: "오늘부터 언니가 합류한다. 엄마와 독립적으로 보고, 듣고, 추적한다."
-      });
-      lines.push({
-        character: "ramyani",
-        chapter: "DAY 5 경고",
-        text: "언니까지? 한 명 피했다고 안심하면 바로 다른 쪽에 걸리겠네.",
-        meta: "두 추적자의 시야와 순찰 경로는 서로 다르다."
-      });
-    } else if (stage.sisterActive) {
-      lines.push({
-        character: "ramyani",
-        chapter: `DAY ${stage.day} 경고`,
-        text: "오늘도 엄마와 언니 둘 다 있어. 유인할 때 다른 한 명의 위치도 꼭 확인해야 해.",
-        meta: "포장끈은 가장 가까운 한 명만 묶는다."
-      });
-    }
-
-    lines[lines.length - 1].endLabel = "오늘 시작 ▶";
-    return lines;
-  }
-
-  function caughtLines(watcher) {
-    const momLines = [
-      "라먀니, 지금 거기서 뭐 하는 거니?",
-      "또 부엌 뒤지고 있었지?",
-      "그 손에 든 메모부터 내려놔 볼래?"
-    ];
-    const sisterLines = [
-      "야. 너 또 몰래 돌아다니고 있었지?",
-      "잡았다. 이번엔 어디까지 뒤졌어?",
-      "진짜 수상하다니까. 뭐 숨기고 있어?"
-    ];
-    const pool = watcher.role === "mom" ? momLines : sisterLines;
-    const line = pool[Math.floor(Math.random() * pool.length)];
-
-    return [
-      {
-        character: watcher.role,
-        chapter: `DAY ${stage.day} · 발각`,
-        tone: "caught",
-        text: line,
-        meta: `누적 발각 ${caught}회 · 오늘 시작점으로 돌아간다.`
-      },
-      {
-        character: "ramyani",
-        chapter: "작전 재개",
-        tone: "caught",
-        text: "으악… 그래도 이미 모은 기록은 안 잃었어. 이번엔 동선을 더 잘 보자.",
-        meta: "발각될수록 이후 추적자의 초기 경계도가 조금씩 올라간다.",
-        endLabel: "다시 움직이기 ▶"
-      }
-    ];
-  }
-
-  function daySummaryLines() {
-    const item = stage.items && stage.items[0];
-    const itemPicked = !!(item && pickedItems[item.id]);
-    const decoysFound = decoyDefs.filter(d => collected[d.id]).length;
-    const todayCaught = caught - stageCaughtStart;
-
-    return [
-      {
-        character: "ramyani",
-        chapter: `DAY ${stage.day} 결산`,
-        tone: "summary",
-        text: `오늘 핵심 단서 ${stageClueCount()}/${clueDefs.length} 확보. 발각은 ${todayCaught}번.`,
-        meta: `쓸모없는 메모 ${decoysFound}개 조사 · 오늘 아이템 ${itemPicked ? "획득" : "놓침"}`
-      },
-      {
-        character: "ramyani",
-        chapter: `DAY ${stage.day} 종료`,
-        tone: "summary",
-        text: itemPicked
-          ? "좋아. 단서도 챙겼고 아이템도 확보했어. 남은 건 다음 날로 가져가자."
-          : "단서는 챙겼지만 오늘 아이템은 두고 왔네. 이미 지나간 날의 아이템은 다시 생기지 않아.",
-        meta: `현재 소지품 · 포장끈 ${inventory.binding}개 / 담배 ${inventory.cigarette}개`,
-        endLabel: "다음 날 ▶"
-      }
-    ];
   }
 
   function makeWatcher(role, spawn, patrol, config, color, inheritedAlert) {
@@ -419,7 +279,7 @@
     stageCaughtStart = caught;
     if (showIntro) {
       audio.stage();
-      showVN(dayIntroLines(), () => {
+      showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
         showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
       });
@@ -443,9 +303,9 @@
     loadStage(0, false);
     updateInventoryUI();
 
-    showVN(campaignIntroLines(), () => {
+    showVN(Story.opening(), () => {
       audio.stage();
-      showVN(dayIntroLines(), () => {
+      showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
         showToast("DAY 1 · 첫 작전을 시작한다.", 2.2);
       });
@@ -466,7 +326,19 @@
       return;
     }
 
-    showVN(daySummaryLines(), () => {
+    const item = stage.items && stage.items[0];
+    const data = {
+      day: stage.day,
+      location: stage.name,
+      dayCaught: caught - stageCaughtStart,
+      cluesFound: stageClueCount(),
+      clueTotal: clueDefs.length,
+      decoysFound: decoyDefs.filter(d => collected[d.id]).length,
+      itemPicked: !!(item && pickedItems[item.id]),
+      itemName: item ? item.title : "아이템"
+    };
+
+    showVN(Story.daySummary(data), () => {
       loadStage(stageIndex + 1, true);
     }, { tone: "summary" });
   }
@@ -646,36 +518,13 @@
       : "몇 번 들키긴 했지만 끝내 원본 레시피를 확보했다.";
     audio.success();
 
-    const ending = [
-      {
-        character: "ramyani",
-        chapter: "DAY 10 · 최종 결산",
-        tone: "ending",
-        text: `드디어 원본까지 챙겼다…! 10일 동안 모은 기록은 ${campaignClueCount()}개, 발각은 ${caught}번.`,
-        meta: `최종 등급 ${rank.rank} · ${rank.label}`
-      },
-      {
-        character: "mom",
-        chapter: "엔딩",
-        tone: "ending",
-        text: caught === 0
-          ? "여기까지 몰래 따라올 줄은 몰랐네. 다음엔 그냥 물어봐도 되는데."
-          : "그렇게 몇 번이나 걸리고도 끝까지 찾아냈니? 훔쳐봤으면 설거지는 네가 해.",
-        meta: "엄마는 화난 것 같으면서도 조금 웃고 있다."
-      },
-      {
-        character: stage.sisterActive ? "sister" : "ramyani",
-        chapter: "엔딩",
-        tone: "ending",
-        text: stage.sisterActive
-          ? "진짜 결국 가져갔네. 난 모르는 일로 할 테니까 내 푸딩은 건드리지 마."
-          : "작전 완료. 이제 직접 만들어 보는 일만 남았어.",
-        meta: stage.sisterActive ? "언니는 귀찮다는 표정으로 방으로 돌아간다." : "",
-        endLabel: "결과 보기 ▶"
-      }
-    ];
-
-    showVN(ending, () => {
+    showVN(Story.ending({
+      rank: rank.rank,
+      label: rank.label,
+      time: C.formatTime(elapsed),
+      caught,
+      sisterSeen: campaign.stages.some(s => s.sisterActive)
+    }), () => {
       gameState = "result";
       ui.result.classList.remove("hidden");
     }, { tone: "ending" });
@@ -705,7 +554,7 @@
     }
 
     audio.alert();
-    showVN(caughtLines(watcher), () => {
+    showVN(Story.caught(watcher.role, caught), () => {
       freeze = 0;
       gameState = "playing";
       showToast("작전 재개 · 이미 확보한 기록은 유지된다.", 1.8);
