@@ -252,10 +252,23 @@
     loadStage(0, true);
   }
 
+  function grantDailyItem() {
+    const item = stage.items && stage.items[0];
+    if (!item || pickedItems[item.id]) return;
+
+    pickedItems[item.id] = true;
+    inventory[item.type] = (inventory[item.type] || 0) + 1;
+    audio.pickup();
+    updateInventoryUI();
+
+    const itemLabel = item.type === "binding" ? "포장끈" : "담배";
+    showToast(`DAY ${stage.day} 지급품 · ${itemLabel} ×1`, 2.6);
+  }
+
   function beginStage() {
     ui.stageIntro.classList.add("hidden");
     gameState = "playing";
-    showToast(`DAY ${stage.day} · ${stage.objective}`, 2.5);
+    grantDailyItem();
   }
 
   function advanceStage() {
