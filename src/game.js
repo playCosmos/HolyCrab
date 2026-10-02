@@ -312,14 +312,6 @@
     });
   }
 
-  function advanceStage() {
-    if (stageIndex >= campaign.stages.length - 1) {
-      finishRun();
-      return;
-    }
-    loadStage(stageIndex + 1, true);
-  }
-
   function completeDay() {
     if (stageIndex >= campaign.stages.length - 1) {
       finishRun();
@@ -1183,7 +1175,13 @@
   window.addEventListener("keyup", e => { keys[e.code] = false; });
   window.addEventListener("blur", () => Object.keys(keys).forEach(k => delete keys[k]));
 
-  ui.vnNext.addEventListener("click", () => {
+  ui.vnNext.addEventListener("click", event => {
+    event.stopPropagation();
+    nextVN();
+  });
+
+  ui.vnScene.addEventListener("click", event => {
+    if (event.target.closest("button")) return;
     nextVN();
   });
 
