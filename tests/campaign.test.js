@@ -3,23 +3,38 @@ const assert = require("node:assert/strict");
 const Campaign = require("../src/stages.js");
 const AI = require("../src/mom-ai.js");
 
-test("campaign spans eight days and revisits all three locations", () => {
+test("campaign spans ten days with exactly three home visits", () => {
   const c = Campaign.generateCampaign("holycrab-test-seed");
-  assert.equal(c.stages.length, 8);
+  assert.equal(c.stages.length, 10);
   assert.equal(c.stages[0].locationKey, "home");
   assert.equal(c.stages.at(-1).locationKey, "home");
   assert.equal(c.stages.at(-1).id, "home-finale");
 
-  const beforeFinal = c.stages.slice(0, -1).map(s => s.locationKey);
-  assert.ok(beforeFinal.filter(x => x === "home").length >= 3);
-  assert.ok(beforeFinal.filter(x => x === "market").length >= 2);
-  assert.ok(beforeFinal.filter(x => x === "banchan").length >= 2);
+  const locations = c.stages.map(s => s.locationKey);
+  assert.equal(locations.filter(x => x === "home").length, 3);
+  assert.equal(locations.filter(x => x === "market" || x === "banchan").length, 7);
+
+  const market = locations.filter(x => x === "market").length;
+  const banchan = locations.filter(x => x === "banchan").length;
+  assert.ok((market === 4 && banchan === 3) || (market === 3 && banchan === 4));
 });
 
-test("middle route avoids immediate duplicate locations for the fixed seed", () => {
-  const c = Campaign.generateCampaign("holycrab-test-seed");
-  for (let i = 1; i < c.stages.length - 1; i += 1) {
-    assert.notEqual(c.stages[i].locationKey, c.stages[i - 1].locationKey);
+test("middle route avoids immediate duplicate locations", () => {
+  const seeds = ["route-a", "route-b", "route-c", "route-d", "route-e"];
+  for (const seed of seeds) {
+    const c = Campaign.generateCampaign(seed);
+    for (let i = 1; i < c.stages.length; i += 1) {
+      assert.notEqual(c.stages[i].locationKey, c.stages[i - 1].locationKey);
+    }
+  }
+});
+
+test("there is exactly one middle home revisit before the finale", () => {
+  const seeds = ["home-a", "home-b", "home-c", "home-d", "home-e"];
+  for (const seed of seeds) {
+    const c = Campaign.generateCampaign(seed);
+    const middle = c.stages.slice(1, -1);
+    assert.equal(middle.filter(s => s.locationKey === "home").length, 1);
   }
 });
 
@@ -34,6 +49,59 @@ test("every generated stage validates", () => {
   const c = Campaign.generateCampaign("validation-seed");
   for (const stage of c.stages) {
     assert.deepEqual(Campaign.validateStage(stage), { ok: true });
+  }
+});
+
+test("market and banchan repeated visits always use fresh clue ids", () => {
+  const c = Campaign.generateCampaign("fresh-clues");
+  const ids = new Set();
+  for (const stage of c.stages) {
+    for (const clue of stage.clues) {
+      assert.equal(ids.has(clue.id), false, `duplicate clue id: ${clue.id}`);
+      ids.add(clue.id);
+    }
+  }
+});
+
+test("each day mixes required clues with decoy or irrelevant records", () => {
+  const c = Campaign.generateCampaign("decoy-evidence-seed");
+  const ids = new Set();
+
+  for (const stage of c.stages) {
+    assert.ok(Array.isArray(stage.decoys));
+    assert.ok(stage.decoys.length >= 2);
+    assert.equal(stage.entries.length, stage.clues.length + stage.decoys.length);
+
+    const required = new Set(stage.clues.map(x => x.id));
+    for (const decoy of stage.decoys) {
+      assert.equal(required.has(decoy.id), false);
+      assert.equal(ids.has(decoy.id), false);
+      ids.add(decoy.id);
+      assert.ok(decoy.flavor || Array.isArray(decoy.resolvesWith));
+    }
+  }
+});
+
+test("later days increase misleading record density", () => {
+  const c = Campaign.generateCampaign("decoy-density-seed");
+  for (const stage of c.stages.slice(0, 4)) {
+    assert.equal(stage.decoys.length, 2);
+  }
+  for (const stage of c.stages.slice(4)) {
+    assert.equal(stage.decoys.length, 3);
+  }
+});
+
+test("campaign provides both restraint and cigarette items", () => {
+  const c = Campaign.generateCampaign("item-seed");
+  const items = c.stages.flatMap(stage => stage.items);
+  assert.ok(items.filter(item => item.type === "binding").length >= 5);
+  assert.ok(items.filter(item => item.type === "cigarette").length >= 5);
+
+  for (const item of items) {
+    assert.ok(Number.isFinite(item.x));
+    assert.ok(Number.isFinite(item.y));
+    assert.ok(["binding", "cigarette"].includes(item.type));
   }
 });
 
@@ -53,19 +121,5 @@ test("AI creates a bounded local search pattern", () => {
   for (const p of brain.searchPoints) {
     assert.ok(p.x >= 28 && p.x <= 72);
     assert.ok(p.y >= 28 && p.y <= 72);
-  }
-});
-
-
-test("campaign guarantees one home revisit in each middle half", () => {
-  const seeds = ["home-a", "home-b", "home-c", "home-d", "home-e"];
-  for (const seed of seeds) {
-    const c = Campaign.generateCampaign(seed);
-    const days2to4 = c.stages.slice(1, 4).map(s => s.locationKey);
-    const days5to7 = c.stages.slice(4, 7).map(s => s.locationKey);
-    assert.equal(days2to4.filter(x => x === "home").length, 1);
-    assert.equal(days5to7.filter(x => x === "home").length, 1);
-    assert.deepEqual(new Set(days2to4), new Set(["home", "market", "banchan"]));
-    assert.deepEqual(new Set(days5to7), new Set(["home", "market", "banchan"]));
   }
 });
