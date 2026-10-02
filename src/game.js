@@ -25,6 +25,9 @@
     sisterCard: document.getElementById("sister-suspicion-card"),
     sisterFill: document.getElementById("sister-suspicion-fill"),
     sisterState: document.getElementById("sister-state"),
+    inventoryBinding: document.getElementById("inventory-binding"),
+    inventoryCigarette: document.getElementById("inventory-cigarette"),
+    boostStatus: document.getElementById("boost-status"),
     prompt: document.getElementById("prompt"),
     toast: document.getElementById("toast"),
     journal: document.getElementById("journal"),
@@ -59,6 +62,8 @@
   let solids = [];
   let blockers = [];
   let clueDefs = [];
+  let decoyDefs = [];
+  let itemDefs = [];
   let hideSpots = [];
   let distractions = [];
   let safe = null;
@@ -67,6 +72,11 @@
 
   let gameState = "title";
   let collected = Object.create(null);
+  let pickedItems = Object.create(null);
+  let inventory = { binding: 0, cigarette: 0 };
+  let boostTimer = 0;
+  let coughTimer = 0;
+  let coughPending = false;
   let hasRecipe = false;
   let caught = 0;
   let elapsed = 0;
@@ -121,13 +131,14 @@
       config: { ...config },
       color,
       suspicion: 0,
+      boundTimer: 0,
       brain: AI.createBrain(inheritedAlert)
     };
   }
 
   function rankCampaign() {
-    if (caught === 0 && elapsed < 900) return { rank: "S", label: "게장 대도" };
-    if (caught <= 2 && elapsed < 1200) return { rank: "A", label: "시장 골목의 집게발" };
+    if (caught === 0 && elapsed < 1200) return { rank: "S", label: "게장 대도" };
+    if (caught <= 2 && elapsed < 1650) return { rank: "A", label: "시장 골목의 집게발" };
     if (caught <= 5) return { rank: "B", label: "끈질긴 레시피 추적자" };
     return { rank: "C", label: "엄마가 처음부터 다 알고 있었음" };
   }
@@ -136,12 +147,30 @@
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
 
+  function stageEvidenceCount() {
+    return [...clueDefs, ...decoyDefs].reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
+  }
+
   function stageCluesComplete() {
     return stageClueCount() >= clueDefs.length;
   }
 
   function campaignClueCount() {
     return Object.keys(collected).length;
+  }
+
+  function evidenceConflict(entry) {
+    return Array.isArray(entry.resolvesWith) && entry.resolvesWith.some(id => collected[id]);
+  }
+
+  function collectedConflictCount() {
+    let count = 0;
+    for (const s of campaign.stages) {
+      for (const entry of (s.decoys || [])) {
+        if (collected[entry.id] && evidenceConflict(entry)) count += 1;
+      }
+    }
+    return count;
   }
 
   function loadStage(index, showIntro = true) {
@@ -155,6 +184,8 @@
     solids = walls.concat(furniture);
     blockers = solids;
     clueDefs = stage.clues.map(x => ({ ...x }));
+    decoyDefs = (stage.decoys || []).map(x => ({ ...x }));
+    itemDefs = (stage.items || []).map(x => ({ ...x, kind: "item" }));
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
     distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0 }));
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
@@ -184,6 +215,9 @@
 
     freeze = 0;
     footstepTimer = 0;
+    boostTimer = 0;
+    coughTimer = 0;
+    coughPending = false;
     noiseRings = [];
     ui.journal.classList.add("hidden");
     renderJournal();
@@ -206,6 +240,11 @@
   function startCampaign() {
     campaign = Campaign.generateCampaign(Date.now());
     collected = Object.create(null);
+    pickedItems = Object.create(null);
+    inventory = { binding: 0, cigarette: 0 };
+    boostTimer = 0;
+    coughTimer = 0;
+    coughPending = false;
     hasRecipe = false;
     caught = 0;
     elapsed = 0;
@@ -254,19 +293,22 @@
   function renderJournal() {
     const groups = [];
     for (const s of campaign.stages) {
-      const found = s.clues.filter(c => collected[c.id]);
-      if (found.length) groups.push({ stage: s, found });
+      const entries = (s.entries || [...s.clues, ...(s.decoys || [])]).filter(c => collected[c.id]);
+      if (entries.length) groups.push({ stage: s, entries });
     }
 
     if (!groups.length) {
-      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 단서가 없다.</strong><span>여러 날 동안 집·시장·반찬가게를 오가며 조각을 모은다.</span></div>';
+      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 기록이 없다.</strong><span>모든 쪽지가 중요한 것은 아니다. 서로 다른 날의 기록을 비교해야 한다.</span></div>';
       return;
     }
 
     ui.journalBody.innerHTML = groups.map(group => {
-      const rows = group.found.map(c =>
-        `<div class="clue"><strong>${c.title}</strong><span>${c.text}</span></div>`
-      ).join("");
+      const rows = group.entries.map(entry => {
+        const conflicted = evidenceConflict(entry);
+        const cls = conflicted ? "clue conflicted" : "clue";
+        const status = conflicted ? '<em class="clue-status">다른 기록과 충돌</em>' : "";
+        return `<div class="${cls}"><strong>${entry.title}${status}</strong><span>${entry.text}</span></div>`;
+      }).join("");
       return `<div class="clue-stage">DAY ${group.stage.day} · ${group.stage.name}</div>${rows}`;
     }).join("");
   }
@@ -274,7 +316,13 @@
   function getInteractables() {
     const list = [];
     for (const c of clueDefs) {
-      if (!collected[c.id]) list.push({ ...c, kind: "clue", label: `${c.title} 조사` });
+      if (!collected[c.id]) list.push({ ...c, kind: "clue", label: `${c.title} 살펴보기` });
+    }
+    for (const d of decoyDefs) {
+      if (!collected[d.id]) list.push({ ...d, kind: "decoy", label: `${d.title} 살펴보기` });
+    }
+    for (const item of itemDefs) {
+      if (!pickedItems[item.id]) list.push({ ...item, kind: "item", label: `${item.title} 줍기` });
     }
     list.push(...hideSpots);
     for (const d of distractions) {
@@ -288,10 +336,10 @@
   function interactionPrompt(obj) {
     if (!obj) return "";
     if (obj.kind === "safe" && !stageCluesComplete()) {
-      return `E · 원본 위치는 찾았지만 아직 단서가 부족하다 ${stageClueCount()}/${clueDefs.length}`;
+      return "E · 원본 위치는 찾았지만 결정적인 근거가 아직 부족하다";
     }
     if (obj.kind === "exit") {
-      if (!stageCluesComplete()) return `E · 오늘 단서 ${stageClueCount()}/${clueDefs.length}`;
+      if (!stageCluesComplete()) return "E · 아직 오늘의 결정적인 근거가 부족하다";
       if (stageIndex === campaign.stages.length - 1 && !hasRecipe) return "E · 원본 레시피부터 챙겨야 한다";
     }
     return `E · ${obj.label}`;
@@ -312,10 +360,33 @@
     if (!obj) return;
 
     if (obj.kind === "clue") {
+      const beforeConflicts = collectedConflictCount();
+      collected[obj.id] = true;
+      const afterConflicts = collectedConflictCount();
+      renderJournal();
+      audio.pickup();
+      const collisionNote = afterConflicts > beforeConflicts ? " · 기존 기록 중 일부와 내용이 충돌한다." : "";
+      showToast(`기록 확보 · ${obj.title}: ${obj.text}${collisionNote}`, 3.5);
+      return;
+    }
+
+    if (obj.kind === "decoy") {
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
-      showToast(`단서 획득 · ${obj.title}: ${obj.text}`, 3.2);
+      showToast(`기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
+      return;
+    }
+
+    if (obj.kind === "item") {
+      pickedItems[obj.id] = true;
+      inventory[obj.type] = (inventory[obj.type] || 0) + 1;
+      audio.pickup();
+      const detail = obj.type === "binding"
+        ? "1번 키로 가까운 엄마/언니 한 명을 잠시 묶어둘 수 있다."
+        : "2번 키로 사용하면 잠시 빨라진다. 피울 때 기침 소리가 난다.";
+      showToast(`${obj.title} 획득 · ${detail}`, 2.8);
+      updateInventoryUI();
       return;
     }
 
@@ -339,7 +410,7 @@
 
     if (obj.kind === "safe") {
       if (!stageCluesComplete()) {
-        showToast(`오늘의 최종 단서를 먼저 확인해야 한다. (${stageClueCount()}/${clueDefs.length})`, 2);
+        showToast("오늘 모은 기록만으로는 아직 원본 위치를 확정할 수 없다.", 2);
       } else {
         hasRecipe = true;
         audio.success();
@@ -397,6 +468,7 @@
       w.patrolIndex = AI.nearestPatrolIndex(w, w.patrol);
       w.target = null;
       w.suspicion = 0;
+      w.boundTimer = 0;
       const extra = Math.min(.72, .16 + stage.day * .045 + caught * .035);
       w.brain = AI.createBrain(extra);
     }
@@ -433,7 +505,8 @@
 
     dx /= len;
     dy /= len;
-    const speed = player.sneaking ? 92 : 178;
+    const baseSpeed = player.sneaking ? 92 : 178;
+    const speed = baseSpeed * (boostTimer > 0 ? 1.45 : 1);
     player.angle = Math.atan2(dy, dx);
 
     const before = { x: player.x, y: player.y };
@@ -490,6 +563,20 @@
 
   function updateWatcher(watcher, dt) {
     const brain = watcher.brain;
+
+    if (watcher.boundTimer > 0) {
+      watcher.boundTimer = Math.max(0, watcher.boundTimer - dt);
+      watcher.velocity.x = 0;
+      watcher.velocity.y = 0;
+      watcher.suspicion = Math.max(0, watcher.suspicion - dt * .18);
+      if (watcher.boundTimer === 0) {
+        brain.alertness = C.clamp(brain.alertness + .22, 0, 1);
+        AI.beginSearch(brain, { x: watcher.x, y: watcher.y }, bounds, watcher.role === "sister" ? 150 : 130);
+        watcher.target = brain.searchPoints[0] || { x: watcher.x, y: watcher.y };
+      }
+      return false;
+    }
+
     const sees = watcherCanSeePlayer(watcher);
 
     if (sees) {
@@ -579,6 +666,86 @@
     return false;
   }
 
+  function nearestBindableWatcher() {
+    let target = null;
+    let best = 76;
+    for (const watcher of watchers) {
+      if (watcher.boundTimer > 0) continue;
+      const d = C.dist(player, watcher);
+      if (d <= best) {
+        best = d;
+        target = watcher;
+      }
+    }
+    return target;
+  }
+
+  function useBindingItem() {
+    if (gameState !== "playing" || freeze > 0) return;
+    if (inventory.binding <= 0) {
+      showToast("포장끈이 없다.", 1.1);
+      return;
+    }
+    const watcher = nearestBindableWatcher();
+    if (!watcher) {
+      showToast("묶으려면 엄마나 언니에게 조금 더 가까이 가야 한다.", 1.5);
+      return;
+    }
+
+    inventory.binding -= 1;
+    watcher.boundTimer = 8;
+    watcher.suspicion = 0;
+    watcher.velocity.x = 0;
+    watcher.velocity.y = 0;
+    watcher.brain.alertness = C.clamp(watcher.brain.alertness + .08, 0, 1);
+    audio.click();
+    showToast(`${watcher.name}를 포장끈으로 묶어뒀다. 약 8초 동안 움직이지 못한다.`, 2.2);
+    updateInventoryUI();
+  }
+
+  function useCigarette() {
+    if (gameState !== "playing" || freeze > 0) return;
+    if (inventory.cigarette <= 0) {
+      showToast("담배가 없다.", 1.1);
+      return;
+    }
+    if (boostTimer > 0) {
+      showToast("이미 속도 부스트가 적용 중이다.", 1.1);
+      return;
+    }
+
+    inventory.cigarette -= 1;
+    boostTimer = 7;
+    coughTimer = 3.2;
+    coughPending = true;
+    emitNoise(player, 125, true);
+    audio.click();
+    showToast("담배 사용 · 7초 동안 이동 속도 +45%. 기침 소리에 주의.", 2.4);
+    updateInventoryUI();
+  }
+
+  function updateInventoryUI() {
+    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}`;
+    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}`;
+    if (ui.boostStatus) {
+      ui.boostStatus.textContent = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
+      ui.boostStatus.classList.toggle("hidden", boostTimer <= 0);
+    }
+  }
+
+  function updateItemEffects(dt) {
+    if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - dt);
+    if (coughPending) {
+      coughTimer -= dt;
+      if (coughTimer <= 0) {
+        coughPending = false;
+        emitNoise(player, 105, false);
+        showToast("콜록! 담배 때문에 소리가 났다.", 1.2);
+      }
+    }
+    updateInventoryUI();
+  }
+
   function updateNoise(dt) {
     noiseRings = noiseRings.filter(r => {
       r.life -= dt;
@@ -591,16 +758,16 @@
   function updateMission() {
     ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
     if (!stageCluesComplete()) {
-      ui.mission.textContent = `${stage.objective} (${stageClueCount()}/${clueDefs.length})`;
+      ui.mission.textContent = `${stage.objective} · 기록 ${stageEvidenceCount()}/${clueDefs.length + decoyDefs.length}`;
       ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니가 서로 다른 경로로 움직인다. 한 명을 피하다 다른 한 명에게 걸릴 수 있다."
-        : "엄마는 소리를 기억하고 마지막으로 본 위치 주변을 수색한다.";
+        ? "엄마와 언니를 피하면서 기록을 교차 확인하자. 그럴듯한 메모가 모두 진짜는 아니다."
+        : "기록끼리 모순될 수 있다. 한 장만 믿지 말고 여러 날의 흔적을 비교하자.";
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
     } else {
       ui.mission.textContent = stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로";
-      ui.submission.textContent = `누적 레시피 조각 ${campaignClueCount()}개 · 발각 ${caught}회`;
+      ui.submission.textContent = `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`;
     }
   }
 
@@ -624,11 +791,15 @@
     const mom = watchers.find(w => w.role === "mom");
     const sister = watchers.find(w => w.role === "sister");
     ui.momFill.style.width = `${Math.round((mom ? mom.suspicion : 0) * 100)}%`;
-    ui.momState.textContent = mom ? AI.stateLabel(mom.brain.state) : "엄마";
+    ui.momState.textContent = mom
+      ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
+      : "엄마";
     ui.sisterCard.classList.toggle("hidden", !sister);
     if (sister) {
       ui.sisterFill.style.width = `${Math.round(sister.suspicion * 100)}%`;
-      ui.sisterState.textContent = AI.stateLabel(sister.brain.state).replace("엄마", "언니");
+      ui.sisterState.textContent = sister.boundTimer > 0
+        ? `묶임 ${sister.boundTimer.toFixed(1)}s`
+        : AI.stateLabel(sister.brain.state).replace("엄마", "언니");
     }
   }
 
@@ -648,6 +819,7 @@
       return;
     }
 
+    updateItemEffects(dt);
     updatePlayer(dt);
     for (const watcher of watchers) {
       if (updateWatcher(watcher, dt)) break;
@@ -703,13 +875,31 @@
 
   function drawInteractables() {
     const pulse = .5 + .5 * Math.sin(performance.now() / 280);
-    for (const c of clueDefs) {
+    for (const c of [...clueDefs, ...decoyDefs]) {
       if (collected[c.id]) continue;
       ctx.save();
       ctx.translate(c.x, c.y);
       ctx.rotate(Math.PI / 4);
       ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
       ctx.fillRect(-7, -7, 14, 14);
+      ctx.restore();
+    }
+
+    for (const item of itemDefs) {
+      if (pickedItems[item.id]) continue;
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      if (item.type === "binding") {
+        ctx.strokeStyle = "#9bd5da";
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(-4, 0, 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(6, 0, 6, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.fillStyle = "#f5eee6";
+        ctx.fillRect(-8, -3, 13, 6);
+        ctx.fillStyle = "#d37d63";
+        ctx.fillRect(5, -3, 4, 6);
+      }
       ctx.restore();
     }
 
@@ -791,11 +981,26 @@
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(-8, -14); ctx.lineTo(8, -14); ctx.stroke();
     }
+    if (watcher.boundTimer > 0) {
+      ctx.strokeStyle = "#d9c07a";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 7, 19, 9, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-15, 1); ctx.lineTo(15, 13);
+      ctx.moveTo(15, 1); ctx.lineTo(-15, 13);
+      ctx.stroke();
+    }
     ctx.restore();
 
     ctx.fillStyle = watcher.role === "mom" ? "rgba(255,245,234,.72)" : "rgba(222,211,246,.82)";
     ctx.font = "700 11px Segoe UI, Malgun Gothic, sans-serif";
-    const label = watcher.role === "mom" ? AI.stateLabel(watcher.brain.state) : AI.stateLabel(watcher.brain.state).replace("엄마", "언니");
+    const label = watcher.boundTimer > 0
+      ? `${watcher.name} · 묶임`
+      : watcher.role === "mom"
+        ? AI.stateLabel(watcher.brain.state)
+        : AI.stateLabel(watcher.brain.state).replace("엄마", "언니");
     ctx.fillText(label, watcher.x - 28, watcher.y - 30);
   }
 
@@ -882,6 +1087,8 @@
     keys[e.code] = true;
     if (e.repeat) return;
     if (e.code === "KeyE") interact();
+    if (e.code === "Digit1") useBindingItem();
+    if (e.code === "Digit2") useCigarette();
     if (e.code === "Tab" && gameState === "playing") ui.journal.classList.toggle("hidden");
   });
 
@@ -906,5 +1113,6 @@
   gameState = "title";
   renderJournal();
   updateMission();
+  updateInventoryUI();
   requestAnimationFrame(frame);
 })();
