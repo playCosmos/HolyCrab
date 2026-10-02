@@ -147,10 +147,6 @@
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
 
-  function stageEvidenceCount() {
-    return [...clueDefs, ...decoyDefs].reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
-  }
-
   function stageCluesComplete() {
     return stageClueCount() >= clueDefs.length;
   }
@@ -159,19 +155,6 @@
     return Object.keys(collected).length;
   }
 
-  function evidenceConflict(entry) {
-    return Array.isArray(entry.resolvesWith) && entry.resolvesWith.some(id => collected[id]);
-  }
-
-  function collectedConflictCount() {
-    let count = 0;
-    for (const s of campaign.stages) {
-      for (const entry of (s.decoys || [])) {
-        if (collected[entry.id] && evidenceConflict(entry)) count += 1;
-      }
-    }
-    return count;
-  }
 
   function loadStage(index, showIntro = true) {
     stageIndex = index;
@@ -252,23 +235,10 @@
     loadStage(0, true);
   }
 
-  function grantDailyItem() {
-    const item = stage.items && stage.items[0];
-    if (!item || pickedItems[item.id]) return;
-
-    pickedItems[item.id] = true;
-    inventory[item.type] = (inventory[item.type] || 0) + 1;
-    audio.pickup();
-    updateInventoryUI();
-
-    const itemLabel = item.type === "binding" ? "포장끈" : "담배";
-    showToast(`DAY ${stage.day} 지급품 · ${itemLabel} ×1`, 2.6);
-  }
-
   function beginStage() {
     ui.stageIntro.classList.add("hidden");
     gameState = "playing";
-    grantDailyItem();
+    showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.5);
   }
 
   function advanceStage() {
@@ -311,17 +281,14 @@
     }
 
     if (!groups.length) {
-      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 기록이 없다.</strong><span>모든 쪽지가 중요한 것은 아니다. 서로 다른 날의 기록을 비교해야 한다.</span></div>';
+      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 기록이 없다.</strong><span>중요한 단서 외에 황당한 가짜 레시피와 생활 메모도 돌아다닌다.</span></div>';
       return;
     }
 
     ui.journalBody.innerHTML = groups.map(group => {
-      const rows = group.entries.map(entry => {
-        const conflicted = evidenceConflict(entry);
-        const cls = conflicted ? "clue conflicted" : "clue";
-        const status = conflicted ? '<em class="clue-status">다른 기록과 충돌</em>' : "";
-        return `<div class="${cls}"><strong>${entry.title}${status}</strong><span>${entry.text}</span></div>`;
-      }).join("");
+      const rows = group.entries.map(entry =>
+        `<div class="clue"><strong>${entry.title}</strong><span>${entry.text}</span></div>`
+      ).join("");
       return `<div class="clue-stage">DAY ${group.stage.day} · ${group.stage.name}</div>${rows}`;
     }).join("");
   }
@@ -373,13 +340,10 @@
     if (!obj) return;
 
     if (obj.kind === "clue") {
-      const beforeConflicts = collectedConflictCount();
       collected[obj.id] = true;
-      const afterConflicts = collectedConflictCount();
       renderJournal();
       audio.pickup();
-      const collisionNote = afterConflicts > beforeConflicts ? " · 기존 기록 중 일부와 내용이 충돌한다." : "";
-      showToast(`기록 확보 · ${obj.title}: ${obj.text}${collisionNote}`, 3.5);
+      showToast(`핵심 기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
       return;
     }
 
@@ -387,7 +351,7 @@
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
-      showToast(`기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
+      showToast(`쓸모없는 기록 · ${obj.title}: ${obj.text}`, 3.0);
       return;
     }
 
@@ -771,10 +735,10 @@
   function updateMission() {
     ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
     if (!stageCluesComplete()) {
-      ui.mission.textContent = `${stage.objective} · 기록 ${stageEvidenceCount()}/${clueDefs.length + decoyDefs.length}`;
+      ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
       ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니를 피하면서 기록을 교차 확인하자. 그럴듯한 메모가 모두 진짜는 아니다."
-        : "기록끼리 모순될 수 있다. 한 장만 믿지 말고 여러 날의 흔적을 비교하자.";
+        ? "엄마와 언니를 피하며 핵심 기록을 찾자. 황당한 가짜 레시피와 생활 메모는 진행에 필요 없다."
+        : "핵심 기록만 진행에 필요하다. 민트초코나 담뱃재 같은 괴식 메모는 그냥 방해물이다.";
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
