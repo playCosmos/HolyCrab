@@ -215,6 +215,9 @@
 
     freeze = 0;
     footstepTimer = 0;
+    boostTimer = 0;
+    coughTimer = 0;
+    coughPending = false;
     noiseRings = [];
     ui.journal.classList.add("hidden");
     renderJournal();
