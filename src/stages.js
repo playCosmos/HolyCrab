@@ -489,7 +489,7 @@
     stage.id = "home-finale";
     stage.day = day;
     stage.totalDays = totalDays;
-    stage.visitIndex = 3;
+    stage.visitIndex = 2;
     stage.locationKey = "home";
     stage.name = "우리 집 · 최종 작전";
     stage.kicker = `DAY ${day} / ${totalDays} · FINAL`;
@@ -545,6 +545,12 @@
         bestScore = score;
         if (score === 0) break;
       }
+    }
+
+    if (bestScore > 0) {
+      best = marketCount === 4
+        ? ["market", "banchan", "market", "banchan", "home", "market", "banchan", "market"]
+        : ["banchan", "market", "banchan", "market", "home", "banchan", "market", "banchan"];
     }
 
     const route = ["home", ...best];
