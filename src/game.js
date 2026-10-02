@@ -59,6 +59,7 @@
   let solids = [];
   let blockers = [];
   let clueDefs = [];
+  let decoyDefs = [];
   let hideSpots = [];
   let distractions = [];
   let safe = null;
@@ -136,12 +137,30 @@
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
 
+  function stageEvidenceCount() {
+    return [...clueDefs, ...decoyDefs].reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
+  }
+
   function stageCluesComplete() {
     return stageClueCount() >= clueDefs.length;
   }
 
   function campaignClueCount() {
     return Object.keys(collected).length;
+  }
+
+  function evidenceConflict(entry) {
+    return Array.isArray(entry.resolvesWith) && entry.resolvesWith.some(id => collected[id]);
+  }
+
+  function collectedConflictCount() {
+    let count = 0;
+    for (const s of campaign.stages) {
+      for (const entry of (s.decoys || [])) {
+        if (collected[entry.id] && evidenceConflict(entry)) count += 1;
+      }
+    }
+    return count;
   }
 
   function loadStage(index, showIntro = true) {
@@ -155,6 +174,7 @@
     solids = walls.concat(furniture);
     blockers = solids;
     clueDefs = stage.clues.map(x => ({ ...x }));
+    decoyDefs = (stage.decoys || []).map(x => ({ ...x }));
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
     distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0 }));
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
@@ -254,19 +274,22 @@
   function renderJournal() {
     const groups = [];
     for (const s of campaign.stages) {
-      const found = s.clues.filter(c => collected[c.id]);
-      if (found.length) groups.push({ stage: s, found });
+      const entries = (s.entries || [...s.clues, ...(s.decoys || [])]).filter(c => collected[c.id]);
+      if (entries.length) groups.push({ stage: s, entries });
     }
 
     if (!groups.length) {
-      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 단서가 없다.</strong><span>여러 날 동안 집·시장·반찬가게를 오가며 조각을 모은다.</span></div>';
+      ui.journalBody.innerHTML = '<div class="clue"><strong>아직 기록이 없다.</strong><span>모든 쪽지가 중요한 것은 아니다. 서로 다른 날의 기록을 비교해야 한다.</span></div>';
       return;
     }
 
     ui.journalBody.innerHTML = groups.map(group => {
-      const rows = group.found.map(c =>
-        `<div class="clue"><strong>${c.title}</strong><span>${c.text}</span></div>`
-      ).join("");
+      const rows = group.entries.map(entry => {
+        const conflicted = evidenceConflict(entry);
+        const cls = conflicted ? "clue conflicted" : "clue";
+        const status = conflicted ? '<em class="clue-status">다른 기록과 충돌</em>' : "";
+        return `<div class="${cls}"><strong>${entry.title}${status}</strong><span>${entry.text}</span></div>`;
+      }).join("");
       return `<div class="clue-stage">DAY ${group.stage.day} · ${group.stage.name}</div>${rows}`;
     }).join("");
   }
@@ -274,7 +297,10 @@
   function getInteractables() {
     const list = [];
     for (const c of clueDefs) {
-      if (!collected[c.id]) list.push({ ...c, kind: "clue", label: `${c.title} 조사` });
+      if (!collected[c.id]) list.push({ ...c, kind: "clue", label: `${c.title} 살펴보기` });
+    }
+    for (const d of decoyDefs) {
+      if (!collected[d.id]) list.push({ ...d, kind: "decoy", label: `${d.title} 살펴보기` });
     }
     list.push(...hideSpots);
     for (const d of distractions) {
@@ -288,10 +314,10 @@
   function interactionPrompt(obj) {
     if (!obj) return "";
     if (obj.kind === "safe" && !stageCluesComplete()) {
-      return `E · 원본 위치는 찾았지만 아직 단서가 부족하다 ${stageClueCount()}/${clueDefs.length}`;
+      return "E · 원본 위치는 찾았지만 결정적인 근거가 아직 부족하다";
     }
     if (obj.kind === "exit") {
-      if (!stageCluesComplete()) return `E · 오늘 단서 ${stageClueCount()}/${clueDefs.length}`;
+      if (!stageCluesComplete()) return "E · 아직 오늘의 결정적인 근거가 부족하다";
       if (stageIndex === campaign.stages.length - 1 && !hasRecipe) return "E · 원본 레시피부터 챙겨야 한다";
     }
     return `E · ${obj.label}`;
@@ -312,10 +338,21 @@
     if (!obj) return;
 
     if (obj.kind === "clue") {
+      const beforeConflicts = collectedConflictCount();
+      collected[obj.id] = true;
+      const afterConflicts = collectedConflictCount();
+      renderJournal();
+      audio.pickup();
+      const collisionNote = afterConflicts > beforeConflicts ? " · 기존 기록 중 일부와 내용이 충돌한다." : "";
+      showToast(`기록 확보 · ${obj.title}: ${obj.text}${collisionNote}`, 3.5);
+      return;
+    }
+
+    if (obj.kind === "decoy") {
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
-      showToast(`단서 획득 · ${obj.title}: ${obj.text}`, 3.2);
+      showToast(`기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
       return;
     }
 
@@ -339,7 +376,7 @@
 
     if (obj.kind === "safe") {
       if (!stageCluesComplete()) {
-        showToast(`오늘의 최종 단서를 먼저 확인해야 한다. (${stageClueCount()}/${clueDefs.length})`, 2);
+        showToast("오늘 모은 기록만으로는 아직 원본 위치를 확정할 수 없다.", 2);
       } else {
         hasRecipe = true;
         audio.success();
@@ -591,16 +628,16 @@
   function updateMission() {
     ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
     if (!stageCluesComplete()) {
-      ui.mission.textContent = `${stage.objective} (${stageClueCount()}/${clueDefs.length})`;
+      ui.mission.textContent = `${stage.objective} · 기록 ${stageEvidenceCount()}/${clueDefs.length + decoyDefs.length}`;
       ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니가 서로 다른 경로로 움직인다. 한 명을 피하다 다른 한 명에게 걸릴 수 있다."
-        : "엄마는 소리를 기억하고 마지막으로 본 위치 주변을 수색한다.";
+        ? "엄마와 언니를 피하면서 기록을 교차 확인하자. 그럴듯한 메모가 모두 진짜는 아니다."
+        : "기록끼리 모순될 수 있다. 한 장만 믿지 말고 여러 날의 흔적을 비교하자.";
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
     } else {
       ui.mission.textContent = stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로";
-      ui.submission.textContent = `누적 레시피 조각 ${campaignClueCount()}개 · 발각 ${caught}회`;
+      ui.submission.textContent = `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`;
     }
   }
 
@@ -703,7 +740,7 @@
 
   function drawInteractables() {
     const pulse = .5 + .5 * Math.sin(performance.now() / 280);
-    for (const c of clueDefs) {
+    for (const c of [...clueDefs, ...decoyDefs]) {
       if (collected[c.id]) continue;
       ctx.save();
       ctx.translate(c.x, c.y);
