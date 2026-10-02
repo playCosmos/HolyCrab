@@ -75,6 +75,66 @@
     { x: 520, y: 300, pause: .45, look: -.5 }
   ];
 
+  const DECOY_POOLS = {
+    home: [
+      { id: "home-v0-fake-ratio", visit: 0, x: 366, y: 350, title: "찢어진 조리 메모", text: "간장 2 : 물 1. 진하게 해야 맛있다?", resolvesWith: ["market-soy-ratio", "final-ratio"] },
+      { id: "home-v0-grocery-noise", visit: 0, x: 760, y: 255, title: "냉장고 옆 장보기 쪽지", text: "우유, 계란, 휴지, 고양이 간식. 레시피와는 관계가 없어 보이지만 일단 적어 둔다.", flavor: true },
+      { id: "home-v0-old-print", visit: 0, x: 1006, y: 510, title: "인터넷 레시피 출력물", text: "탄산음료를 조금 넣으면 감칠맛이 난다는 낡은 출력물. 엄마가 실제로 쓰는지는 알 수 없다.", flavor: true },
+      { id: "home-v0-sister-note", visit: 0, x: 390, y: 650, title: "언니의 야식 메모", text: "‘내 푸딩 먹지 마.’ 중요한 암호처럼 보였지만 그냥 푸딩 얘기다.", flavor: true },
+
+      { id: "home-v1-fake-aging", visit: 1, x: 365, y: 332, title: "낡은 타이머 메모", text: "‘6시간이면 충분.’ 무엇을 재는 시간인지는 적혀 있지 않다.", resolvesWith: ["home-first-rest", "shop-aging", "final-rest"] },
+      { id: "home-v1-fake-aroma", visit: 1, x: 905, y: 520, title: "재료 수정 흔적", text: "생강 X, 마늘만 많이? 연필로 여러 번 지웠다 쓴 흔적이 있다.", resolvesWith: ["home-aromatics", "market-aromatics"] },
+      { id: "home-v1-delivery", visit: 1, x: 1010, y: 280, title: "택배 도착 메모", text: "수건 4장, 세제 리필 2개. 부엌에 붙어 있어서 괜히 수상해 보인다.", flavor: true },
+      { id: "home-v1-sticky", visit: 1, x: 735, y: 650, title: "정체불명 포스트잇", text: "‘다음에는 3번 먼저.’ 무엇의 3번인지는 아무도 적지 않았다.", flavor: true },
+
+      { id: "home-v2-fake-reboil", visit: 2, x: 980, y: 515, title: "버린 조리 초안", text: "1차 뒤에는 끓이지 말 것. 그대로 다시 붓기. 옆에 크게 X 표시가 그어져 있다.", resolvesWith: ["home-reboil", "shop-reboil", "final-rest"] },
+      { id: "home-v2-fake-sweet", visit: 2, x: 785, y: 255, title: "설탕 비율 메모", text: "‘설탕만 두 배.’ 필체가 엄마 것과 조금 다르다.", resolvesWith: ["home-sweetener", "shop-sweet"] },
+      { id: "home-v2-calendar-noise", visit: 2, x: 350, y: 650, title: "달력 낙서", text: "치과 4시, 분리수거 목요일, 드라마 마지막 회. 매우 자세하지만 게장은 없다.", flavor: true },
+      { id: "home-v2-code-noise", visit: 2, x: 1040, y: 255, title: "숫자만 적힌 쪽지", text: "7-2-9-4. 비밀번호 같지만 어디에도 맞지 않는다.", flavor: true }
+    ],
+
+    market: [
+      { id: "market-v0-fake-ratio", visit: 0, x: 390, y: 405, title: "장류 가게 홍보 전단", text: "업소용 초간단 비율: 간장 3 : 물 1. 엄마가 이 전단을 보고 산 건지는 불명.", resolvesWith: ["market-soy-ratio", "final-ratio"] },
+      { id: "market-v0-fake-crab", visit: 0, x: 720, y: 520, title: "옆 가게 홍보 문구", text: "‘아무 꽃게나 양념만 세면 된다!’ 너무 자신만만한 문구다.", resolvesWith: ["market-crab"] },
+      { id: "market-v0-parking", visit: 0, x: 1080, y: 420, title: "주차 확인증", text: "2시간 무료 주차. 뒷면까지 확인했지만 아무것도 없다.", flavor: true },
+      { id: "market-v0-lottery", visit: 0, x: 1340, y: 340, title: "시장 경품권", text: "도장 8개를 모으면 장바구니 증정. 레시피 조각은 아니다.", flavor: true },
+
+      { id: "market-v1-fake-aroma", visit: 1, x: 380, y: 405, title: "채소가게 추천표", text: "게장에는 생강 대신 고수? 사장님의 실험 메뉴 추천인 듯하다.", resolvesWith: ["market-aromatics", "home-aromatics"] },
+      { id: "market-v1-fake-sweet", visit: 1, x: 710, y: 515, title: "시럽 판촉 카드", text: "‘설탕만 쓰면 충분!’ 특정 상품 광고 문구라 신뢰하기 어렵다.", resolvesWith: ["market-maesil", "home-sweetener", "shop-sweet"] },
+      { id: "market-v1-delivery", visit: 1, x: 1080, y: 420, title: "상인 배송 목록", text: "멸치 3박스, 김 5묶음, 종이컵 2줄. 엄마 주문은 아니다.", flavor: true },
+      { id: "market-v1-phone", visit: 1, x: 1338, y: 340, title: "분실물 연락처", text: "‘빨간 우산 주인 010-XXXX…’. 수상해 보였지만 정말 분실물 메모다.", flavor: true }
+    ],
+
+    banchan: [
+      { id: "shop-v0-fake-cool", visit: 0, x: 430, y: 250, title: "오래된 교육용 메모", text: "간장물은 뜨거울 때 바로 부으면 잘 밴다? 날짜가 몇 년 전이다.", resolvesWith: ["shop-cool", "final-cool"] },
+      { id: "shop-v0-fake-sweet", visit: 0, x: 820, y: 500, title: "직원용 단맛 메모", text: "설탕만 사용. 매실청 금지. 옆에 ‘폐기 레시피’라는 글자가 반쯤 찢겨 있다.", resolvesWith: ["shop-sweet", "home-sweetener"] },
+      { id: "shop-v0-order", visit: 0, x: 960, y: 500, title: "반찬 주문표", text: "멸치볶음 2, 진미채 1, 계란말이 2. 게장 주문은 없다.", flavor: true },
+      { id: "shop-v0-cleaning", visit: 0, x: 1320, y: 210, title: "마감 청소 순서", text: "바닥 → 냉장고 손잡이 → 계산대. 조리 순서처럼 보여 잠깐 헷갈린다.", flavor: true },
+
+      { id: "shop-v1-fake-aging", visit: 1, x: 430, y: 250, title: "구형 숙성 라벨", text: "12시간 / 테스트 배치. 지금도 쓰는 기준인지는 알 수 없다.", resolvesWith: ["shop-aging", "home-first-rest", "final-rest"] },
+      { id: "shop-v1-fake-reboil", visit: 1, x: 820, y: 500, title: "실험 배치 체크표", text: "간장 재가열 생략. 결과 칸에는 ‘별로’라고 적혀 있다.", resolvesWith: ["shop-reboil", "home-reboil", "final-rest"] },
+      { id: "shop-v1-staff", visit: 1, x: 960, y: 500, title: "직원 교대표", text: "화요일 오후: 민지, 수요일 오전: 사장님. 레시피 암호는 아니었다.", flavor: true },
+      { id: "shop-v1-price", visit: 1, x: 1320, y: 210, title: "가격 수정표", text: "오징어젓 +500원, 깻잎무침 +300원. 숫자가 많아 괜히 중요한 문서처럼 보인다.", flavor: true }
+    ]
+  };
+
+  const FINAL_DECOYS = [
+    { id: "final-decoy-ratio", x: 365, y: 340, title: "엄마 필체를 흉내 낸 쪽지", text: "간장 2 : 물 1. 아래쪽 필압이 평소와 다르다.", resolvesWith: ["final-ratio"] },
+    { id: "final-decoy-aging", x: 780, y: 260, title: "오래된 게장 실험표", text: "12시간 숙성. 우측 상단에 ‘실패’ 도장이 희미하게 남아 있다.", resolvesWith: ["final-rest"] },
+    { id: "final-decoy-cool", x: 1010, y: 500, title: "찢어진 조리 메모", text: "끓인 뒤 바로 붓기. 뒷면에는 다른 사람의 필기가 이어진다.", resolvesWith: ["final-cool"] },
+    { id: "final-decoy-nonsense", x: 760, y: 650, title: "엄마의 진짜 비밀 메모?", text: "‘라먀니가 또 뒤지면 김치통부터 확인할 것.’ 레시피 대신 라먀니 얘기다.", flavor: true }
+  ];
+
+  function pickDecoys(locationKey, visitIndex, day, rng) {
+    const pool = (DECOY_POOLS[locationKey] || []).filter(x => x.visit === visitIndex);
+    const count = Math.min(pool.length, day >= 5 ? 3 : 2);
+    return shuffle(pool, rng).slice(0, count).map(x => {
+      const out = clone(x);
+      delete out.visit;
+      return out;
+    });
+  }
+
   const LOCATIONS = {
     home: {
       key: "home",
@@ -283,7 +343,7 @@
     { id: "final-rest", x: 1185, y: 676, title: "원본 · 숙성", text: "1차 24시간 뒤 게를 건지고 간장물을 다시 끓여 식힌 다음 다시 부어 2차 숙성." }
   ];
 
-  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive) {
+  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive, rng) {
     const base = LOCATIONS[locationKey];
     const visit = base.visits[Math.min(visitIndex, base.visits.length - 1)];
     const dayFactor = (day - 1) / Math.max(1, totalDays - 1);
@@ -300,6 +360,8 @@
     stage.intro = visit.intro;
     stage.objective = visit.objective;
     stage.clues = clone(visit.clues);
+    stage.decoys = pickDecoys(locationKey, visitIndex, day, rng);
+    stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
     stage.sisterActive = !!sisterActive;
     stage.safe = null;
     stage.ai = {
@@ -321,7 +383,7 @@
     return stage;
   }
 
-  function makeFinal(day, totalDays) {
+  function makeFinal(day, totalDays, rng) {
     const base = LOCATIONS.home;
     const stage = clone(base);
     stage.id = "home-finale";
@@ -335,6 +397,8 @@
     stage.intro = "며칠 동안 집, 시장, 반찬가게를 오가며 조각을 모았다. 이제 엄마가 감춘 원본만 챙기면 된다. 문제는 언니도 라먀니의 수상한 움직임을 완전히 눈치챘다는 것.";
     stage.objective = "원본 레시피 확보";
     stage.clues = clone(FINAL_CLUES);
+    stage.decoys = shuffle(FINAL_DECOYS, rng).slice(0, 3).map(clone);
+    stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
     stage.sisterActive = true;
     stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
@@ -384,10 +448,10 @@
     route.forEach((locationKey, i) => {
       const day = i + 1;
       const visitIndex = counts[locationKey]++;
-      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5));
+      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5, rng));
     });
 
-    stages.push(makeFinal(totalDays, totalDays));
+    stages.push(makeFinal(totalDays, totalDays, rng));
     return { seed, route: stages.map(s => s.locationKey), stages };
   }
 
@@ -401,6 +465,10 @@
       return { ok: false, reason: "sister patrol too short" };
     }
     if (!Array.isArray(stage.clues) || stage.clues.length < 1) return { ok: false, reason: "no clues" };
+    if (!Array.isArray(stage.decoys)) return { ok: false, reason: "decoys missing" };
+    if (!Array.isArray(stage.entries) || stage.entries.length !== stage.clues.length + stage.decoys.length) {
+      return { ok: false, reason: "evidence entries invalid" };
+    }
     return { ok: true };
   }
 
