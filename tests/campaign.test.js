@@ -82,6 +82,18 @@ test("each day mixes required clues with decoy or irrelevant records", () => {
   }
 });
 
+test("fake recipes are obvious flavor-only distractions with no comparison metadata", () => {
+  const c = Campaign.generateCampaign("obvious-fakes");
+  const decoys = c.stages.flatMap(stage => stage.decoys);
+
+  assert.equal(decoys.some(decoy => "resolvesWith" in decoy), false);
+  assert.ok(decoys.some(decoy => decoy.obviousFake && /민트초코|담뱃재|치약|초콜릿|라면|마요네즈/.test(decoy.text)));
+
+  for (const decoy of decoys) {
+    assert.ok(decoy.flavor || decoy.obviousFake);
+  }
+});
+
 test("later days increase misleading record density", () => {
   const c = Campaign.generateCampaign("decoy-density-seed");
   for (const stage of c.stages.slice(0, 4)) {
