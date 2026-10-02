@@ -343,7 +343,7 @@
       } else {
         hasRecipe = true;
         audio.success();
-        showToast("원본 레시피를 손에 넣었다. 퀴즈는 없다 — 이제 현관까지 살아서(?) 나가자.", 3);
+        showToast("원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.", 3);
       }
       return;
     }
