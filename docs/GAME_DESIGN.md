@@ -1,204 +1,179 @@
-# HolyCrab — Game Design
+# HolyCrab — Game Design v2
 
-## 1. Pitch
+## 1. 핵심 컨셉
 
-**HolyCrab** is a short single-player stealth-comedy game about **라먀니 (Ramyani)** sneaking through her family home at night to reconstruct and steal Mom's legendary soy-marinated crab recipe.
+HolyCrab은 라먀니가 엄마의 간장게장 레시피를 **하루 안에 훔치는 게임이 아니라, 여러 날 동안 생활 동선을 추적해 조금씩 조각을 빼내는 스텔스 코미디**다.
 
-The project deliberately targets a compact, polished scope instead of a large unfinished one. A complete run is designed to take roughly 5–12 minutes on the first playthrough and 2–5 minutes once the route is known.
+플레이어는 같은 장소를 다시 방문한다. 중요한 차이는 날짜가 바뀔 때마다 얻을 수 있는 정보와 감시 강도가 달라진다는 점이다.
 
-## 2. Player fantasy
+## 2. 캠페인 구조
 
-The player should feel like a very low-stakes master thief inside a familiar home:
+기본 1회 플레이는 8일이다.
 
-- sneak past Mom rather than fight her;
-- inspect suspicious household objects;
-- create harmless distractions;
-- hide when a patrol gets too close;
-- piece together recipe clues;
-- solve the final recipe box;
-- escape through the front door.
+1. Day 1 — 집 고정
+2. Day 2~7 — 집 2회, 전통시장 2회, 반찬가게 2회를 무작위 순서로 배치
+3. Day 8 — 집 최종 작전 고정
 
-The tone is warm, mischievous, and affectionate rather than threatening.
+중간 루트는 즉시 같은 장소가 반복되지 않도록 우선 배치한다. 따라서 새 게임마다 정보가 풀리는 순서와 동선 감각이 조금씩 달라진다.
 
-## 3. Main character
+최종 방문까지 합치면 대략 다음 빈도로 같은 장소를 반복한다.
 
-**Name:** 라먀니
+- 집: 초반 + 중간 2회 + 최종 = 총 4회
+- 전통시장: 2회
+- 반찬가게: 2회
 
-The supplied character reference is treated as the canonical visual direction:
+## 3. 정보 획득 흐름
 
-- peach/orange hair;
-- amber eyes;
-- cream knit/cardigan silhouette;
-- dark skirt;
-- lollipop and crossed hair-pin accents;
-- warm night-out color palette.
+레시피를 하나의 문서로 주지 않는다.
 
-For gameplay readability, the in-game player is rendered as a small top-down SD/chibi figure. The title screen uses a simplified vector portrait based on the same identifiers, so the implementation does not depend on an external art pipeline.
+각 날짜에는 2~3개의 조사 포인트가 있고, 확보한 정보는 영구 노트에 누적된다.
 
-## 4. Core loop
+정보 예시:
 
-1. Leave 라먀니's room.
-2. Explore the living room and kitchen.
-3. Collect four glowing recipe clues.
-4. Avoid Mom's vision cone and noise investigation.
-5. Use hiding spots or activate household distractions.
-6. Open the recipe box after all clues are found.
-7. Answer three clue-based questions.
-8. Escape through the front door with the recipe.
+- 엄마의 장보기 순서
+- 꽃게 선택 기준
+- 간장 : 물 기본 비율
+- 향채 구성
+- 매실청 사용
+- 끓인 간장물 완전 냉각
+- 1차 숙성 24시간
+- 게 분리 후 간장물 재가열
+- 2차 숙성
 
-Being caught does not erase clues. The player is returned to the bedroom and the run records one catch. This keeps failure funny and fast instead of punishing.
+후반 최종 집 방문에서는 이미 모은 정보와 연결되는 원본 조각을 확보한 뒤 실제 원본 레시피를 집어 들면 된다.
 
-## 5. Rules
+**퀴즈는 사용하지 않는다.** 플레이는 끝까지 이동, 은신, 추적 회피, 조사 중심으로 유지한다.
 
-### Movement
+## 4. 엄마 AI
 
-- **WASD / Arrow keys:** move.
-- **Shift:** sneak. Movement is slower and almost silent.
-- **E:** interact, investigate, hide, or leave a hiding place.
-- **Tab:** open/close clue journal.
-- **Esc:** close the recipe puzzle.
+엄마는 단순 Waypoint Patrol이 아니다.
 
-### Stealth
+### Patrol
+- 장소별 순찰 경로 사용
+- 각 지점에서 짧게 멈춤
+- 정면만 보는 것이 아니라 멈춘 동안 주변 방향 확인
+- 날짜가 갈수록 기본 경계도 증가
 
-Mom has two detection systems:
+### Hearing / Investigate
+- 걷기 소음, 유인 장치 소리를 감지
+- 벽/가구 뒤 소리는 감쇠
+- 소리가 난 정확한 위치를 기억
+- 해당 위치까지 직접 조사
 
-- **Vision:** a directional cone with range and wall/furniture occlusion.
-- **Hearing:** normal footsteps create periodic noise pulses. Sneaking reduces the noise radius dramatically.
+### Search
+플레이어를 놓치면 즉시 순찰로 복귀하지 않는다.
 
-The suspicion gauge rises while 라먀니 is visible. It decays when line of sight is broken. Reaching 100% suspicion, or physically colliding with Mom, counts as being caught.
+- 마지막 목격 위치 기억
+- 중심점 + 주변 8방향으로 수색 포인트 생성
+- 일정 시간 동안 순차 확인
+- 실패하면 가장 가까운 순찰 경로로 복귀
 
-### Mom AI
+### Chase
+- 플레이어 현재 위치만 따라가지 않음
+- 현재 이동 벡터를 이용해 짧은 미래 위치를 예측
+- 근거리일수록 의심 상승 속도 증가
+- 플레이어가 달리면 더 빨리 확정 탐지
+- 살금살금 이동 시 시각 탐지 증가율 일부 감소
 
-Mom cycles through:
+### Escalation
+날짜가 갈수록 다음이 증가한다.
 
-- **Patrol:** fixed household route.
-- **Investigate:** walks toward a noise source, then scans the area.
-- **Alert:** moves toward the player's last/current visible position.
+- 시야 거리
+- 시야각
+- 청각 민감도
+- 조사 이동 속도
+- 추적 속도
+- 초기 경계도
 
-Harmless distractions can deliberately force the investigate state.
+들킨 횟수도 이후 스테이지의 초기 경계도에 일부 반영된다.
 
-### Hiding
+## 5. 언니 AI
 
-There are three hiding positions:
+Day 5부터 언니가 등장한다.
 
-- bedroom wardrobe;
-- living-room sofa;
-- kitchen island.
+언니는 엄마의 단순 복제물이 아니라 다음 역할을 가진다.
 
-While hidden, 라먀니 cannot move and cannot be visually detected. Pressing **E** exits the hiding place.
+- 엄마와 반대/교차하는 순찰 경로
+- 더 빠른 추적 속도
+- 비교적 넓은 시야
+- 독립된 소리 조사
+- 독립된 마지막 목격 위치
+- 독립된 의심 게이지
 
-## 6. Recipe clues
+엄마를 소리로 유인해도 언니가 같은 소리를 다른 거리에서 듣거나, 반대 방향에서 플레이어를 발견할 수 있다.
 
-The four in-game clues are:
+이 때문에 후반에는 유인 장치가 단순 정답이 아니라 **두 추적자의 위치를 동시에 고려하는 도구**가 된다.
 
-1. **Calendar note:** soy sauce : water = 1 : 1.
-2. **Fridge magnet note:** sweetness can include maesil syrup.
-3. **Pantry note:** onion, green onion, garlic, and ginger are used for aroma.
-4. **Secret drawer note:** first rest is 24 hours; remove crab, boil the soy mixture again, cool it completely, then perform a second rest.
+## 6. 장소
 
-These are game-fiction recipe notes, not a food-safety guarantee or a substitute for a tested culinary recipe.
+### 우리 집
+좁은 문과 가구, 부엌 구조를 이용하는 기본 스텔스 공간.
 
-## 7. Final puzzle
+반복 방문 시:
+- 장보기 동선
+- 재료 확인
+- 숙성 중간 흔적
+- 최종 원본 확보
 
-The recipe box asks three multiple-choice questions based entirely on the collected notes:
+### 전통시장
+시야가 좌판으로 자주 끊기고 긴 통로가 존재한다.
 
-- base soy/water ratio;
-- first resting time;
-- the post-rest reboil/cool/second-rest step.
+반복 방문 시:
+- 꽃게 / 간장
+- 향채 / 매실청
 
-A wrong answer does not end the run, but adds a small amount of suspicion as a comic “click” penalty.
+### 단골 반찬가게
+좁고 밀도가 높아 시야가 겹치기 쉽다.
 
-## 8. Ending and scoring
+반복 방문 시:
+- 간장물 냉각
+- 단맛 보정
+- 숙성 시간
+- 재가열 / 2차 숙성
 
-The run ends once the player reaches the front door with the recipe.
+## 7. 실패와 진행 유지
 
-The game records:
+발각 시:
+- 해당 날짜의 시작점으로 복귀
+- 해당 날짜에서 이미 찾은 단서는 유지
+- 이전 날짜 단서는 모두 유지
+- 누적 발각 횟수 증가
+- 감시자의 초기 경계도 증가
 
-- elapsed time;
-- number of catches;
-- rank.
+즉, 실패가 캠페인을 다시 처음부터 반복시키지는 않는다.
 
-Ranks are intentionally lightweight:
+## 8. 최종 작전
 
-- **S — 게장 괴도:** no catches and under 4 minutes.
-- **A — 새벽의 집게발:** at most one catch and under 7 minutes.
-- **B — 무난한 절도(?)**: at most three catches.
-- **C — 엄마가 다 알고 있었음:** anything messier.
+Day 8 집 방문.
 
-The ending reveals that Mom likely knew what 라먀니 was doing and left a note suggesting they make the dish together next time.
+1. 최종 원본 조각 3개 확인
+2. 부엌 안쪽에 숨겨진 원본 레시피 직접 확보
+3. 엄마 + 언니 동시 감시를 피해 현관까지 이동
+4. 탈출하면 종료
 
-## 9. Visual direction
+정답 선택 UI나 레시피 퀴즈는 없다.
 
-The game uses a warm-night palette:
+## 9. 기술 구조
 
-- deep mauve/charcoal rooms;
-- cream UI;
-- peach/orange 라먀니 accents;
-- amber clue highlights;
-- pale blue noise/distraction indicators;
-- soft red suspicion feedback.
+- `src/core.js` — 충돌 / LOS / 시야 기하
+- `src/mom-ai.js` — 감시자 AI 상태와 기억/수색 헬퍼
+- `src/stages.js` — 장소 정의, 날짜별 방문 템플릿, 캠페인 셔플
+- `src/game.js` — 캠페인 상태, 두 감시자 런타임, 렌더링/입력
+- `tests/campaign.test.js` — 날짜/장소/언니 등장/AI 수색 검증
 
-The entire world is visible in one 16:9 top-down scene. This avoids camera complexity and makes route planning immediately readable.
+## 10. 완료 기준
 
-## 10. Technical implementation
+v2 캠페인은 다음을 만족해야 한다.
 
-The game is intentionally dependency-free:
-
-- **HTML5 Canvas** for gameplay rendering;
-- **plain JavaScript** for game loop and AI;
-- **CSS** for UI overlays;
-- **Web Audio API** for generated pickup/alert/success tones;
-- **SVG** for the title portrait.
-
-No asset server, package installation, or build step is required to play.
-
-### Code structure
-
-- `index.html` — application shell and overlays.
-- `style.css` — all UI styling.
-- `src/core.js` — pure geometry, collision, line-of-sight, vision, scoring helpers.
-- `src/game.js` — game state, input, AI, rendering, interaction, puzzle, endings.
-- `assets/ramyani.svg` — bundled character portrait.
-- `tests/core.test.js` — deterministic core tests.
-- `START_HOLYCRAB.bat` — Windows one-click launcher.
-
-## 11. Windows target
-
-Primary target: current Windows 10/11 with a modern Chromium/Edge/Firefox browser.
-
-The simplest launch path is double-clicking `START_HOLYCRAB.bat`, which opens the local `index.html` in the default browser. The game does not require a network connection after the repository is downloaded.
-
-## 12. Definition of done for v1.0
-
-v1.0 is considered complete when:
-
-- the title screen launches;
-- player movement and sneaking work;
-- collision prevents walking through walls/furniture;
-- Mom patrol/investigate/alert AI works;
-- vision is blocked by room geometry;
-- hearing responds to movement noise;
-- hiding works;
-- four clues can be collected;
-- the journal reflects collected clues;
-- three distraction objects work with cooldowns;
-- the recipe box puzzle is solvable;
-- the exit is locked until recipe acquisition;
-- the ending/rank screen works;
-- restart works;
-- core tests pass;
-- Windows one-click launch works.
-
-## 13. Optional post-v1 directions
-
-These are intentionally outside the completed v1 scope:
-
-- sprite-sheet animation and commissioned character art;
-- voiced Mom/라먀니 dialogue;
-- multiple house layouts;
-- randomized clue placement;
-- challenge modes;
-- Steam/itch.io packaging through an optional desktop wrapper;
-- save data and achievements.
-
-The base game does not depend on any of these to be complete.
+- 총 8일 진행
+- 집/시장/반찬가게 반복 방문
+- Day 2~7 순서 셔플
+- 수집 단서 날짜 간 유지
+- 엄마 Patrol / Investigate / Search / Chase / Return 동작
+- 마지막 목격 위치 기반 수색
+- 벽 너머 소리 감쇠
+- 날짜 기반 AI 난이도 상승
+- Day 5 이후 언니 등장
+- 엄마/언니 독립 시야·청각·의심 상태
+- 퀴즈 없는 최종 원본 확보
+- 최종 탈출 및 누적 결과 표시
