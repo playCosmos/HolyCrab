@@ -356,26 +356,27 @@
     const seed = hashSeed(seedValue == null ? Date.now() : seedValue);
     const rng = mulberry32(seed);
 
-    // Day 1 is always home. Days 2-7 revisit all three places twice in a shuffled order.
-    // We prefer an order without immediate repetition so each day feels like a new lead.
-    const middleBase = ["home", "home", "market", "market", "banchan", "banchan"];
-    let best = middleBase.slice();
-    let bestScore = Infinity;
-    for (let i = 0; i < 80; i += 1) {
-      const candidate = shuffle(middleBase, rng);
-      const score = scoreRoute(candidate);
-      if (score < bestScore) {
-        best = candidate;
-        bestScore = score;
-        if (score === 0) break;
-      }
+    // Day 1 is always home.
+    // Days 2-4 and Days 5-7 each contain exactly one home, one market, and one banchan visit.
+    // This guarantees that the player returns home in both the early-middle and late-middle campaign,
+    // rather than seeing home only at the opening and finale.
+    let early = shuffle(["home", "market", "banchan"], rng);
+    for (let i = 0; i < 12 && early[0] === "home"; i += 1) {
+      early = shuffle(["home", "market", "banchan"], rng);
+    }
+    if (early[0] === "home") early = ["market", "home", "banchan"];
+
+    let late = shuffle(["home", "market", "banchan"], rng);
+    for (let i = 0; i < 12 && late[0] === early[2]; i += 1) {
+      late = shuffle(["home", "market", "banchan"], rng);
+    }
+    if (late[0] === early[2]) {
+      late = late[0] === "home"
+        ? ["market", "home", "banchan"]
+        : ["home", "market", "banchan"];
     }
 
-    if (bestScore > 0) {
-      best = ["market", "banchan", "home", "market", "banchan", "home"];
-    }
-
-    const route = ["home", ...best];
+    const route = ["home", ...early, ...late];
     const totalDays = route.length + 1;
     const counts = { home: 0, market: 0, banchan: 0 };
     const stages = [];
