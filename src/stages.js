@@ -1,0 +1,407 @@
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.HolyCrabStages = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const clone = value => JSON.parse(JSON.stringify(value));
+
+  function hashSeed(value) {
+    let h = 2166136261 >>> 0;
+    const s = String(value);
+    for (let i = 0; i < s.length; i += 1) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0;
+      a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffle(list, rng) {
+    const out = list.slice();
+    for (let i = out.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  }
+
+  const HOME_WALLS = [
+    { x: 430, y: 14, w: 18, h: 258 },
+    { x: 430, y: 398, w: 18, h: 398 },
+    { x: 960, y: 14, w: 18, h: 206 },
+    { x: 960, y: 350, w: 18, h: 446 }
+  ];
+
+  const HOME_FURNITURE = [
+    { x: 58, y: 92, w: 280, h: 132, kind: "bed", label: "침대" },
+    { x: 62, y: 438, w: 136, h: 88, kind: "wardrobe", label: "옷장" },
+    { x: 272, y: 520, w: 118, h: 70, kind: "desk", label: "책상" },
+    { x: 560, y: 118, w: 250, h: 92, kind: "sofa", label: "소파" },
+    { x: 640, y: 350, w: 190, h: 106, kind: "table", label: "테이블" },
+    { x: 520, y: 540, w: 190, h: 54, kind: "tv", label: "TV" },
+    { x: 1030, y: 52, w: 328, h: 66, kind: "counter", label: "조리대" },
+    { x: 1080, y: 330, w: 240, h: 102, kind: "island", label: "아일랜드" },
+    { x: 1340, y: 130, w: 64, h: 170, kind: "fridge", label: "냉장고" },
+    { x: 1030, y: 548, w: 124, h: 92, kind: "pantry", label: "찬장" },
+    { x: 1210, y: 564, w: 116, h: 62, kind: "drawer", label: "서랍장" }
+  ];
+
+  const HOME_PATROL = [
+    { x: 600, y: 300, pause: .7, look: .65 },
+    { x: 850, y: 300, pause: .35, look: -.55 },
+    { x: 1040, y: 280, pause: .75, look: .8 },
+    { x: 1240, y: 200, pause: .5, look: -.5 },
+    { x: 1380, y: 260, pause: .35, look: .65 },
+    { x: 1380, y: 480, pause: .45, look: -.7 },
+    { x: 1240, y: 470, pause: .6, look: .65 },
+    { x: 1035, y: 460, pause: .45, look: -.5 },
+    { x: 1035, y: 300, pause: .55, look: .65 },
+    { x: 900, y: 300, pause: .25, look: -.5 },
+    { x: 900, y: 650, pause: .6, look: .6 },
+    { x: 600, y: 650, pause: .35, look: -.45 },
+    { x: 520, y: 480, pause: .35, look: .55 },
+    { x: 520, y: 300, pause: .45, look: -.5 }
+  ];
+
+  const LOCATIONS = {
+    home: {
+      key: "home",
+      name: "우리 집",
+      timeNames: ["새벽", "저녁", "깊은 밤"],
+      palette: { bg: "#17131b", grid: "rgba(255,255,255,.035)", wall: "#17131a", accent: "#f2ae73" },
+      zones: [
+        { x: 20, y: 20, w: 410, h: 770, label: "라먀니의 방", tone: "#2b2531" },
+        { x: 448, y: 20, w: 512, h: 770, label: "거실", tone: "#2d272d" },
+        { x: 978, y: 20, w: 442, h: 770, label: "부엌", tone: "#302629" }
+      ],
+      walls: HOME_WALLS,
+      furniture: HOME_FURNITURE,
+      spawn: { x: 228, y: 340 },
+      momSpawn: { x: 600, y: 300, angle: 0 },
+      sisterSpawn: { x: 1040, y: 650, angle: -1.2 },
+      patrolMom: HOME_PATROL,
+      patrolSister: HOME_PATROL.slice().reverse(),
+      hideSpots: [
+        { id: "home-wardrobe", x: 215, y: 484, label: "옷장에 숨기" },
+        { id: "home-sofa", x: 835, y: 170, label: "소파 뒤에 숨기" },
+        { id: "home-island", x: 1060, y: 382, label: "아일랜드 뒤에 숨기" }
+      ],
+      distractions: [
+        { id: "home-tv", x: 740, y: 570, label: "TV 소리 내기", radius: 470 },
+        { id: "home-phone", x: 856, y: 92, label: "휴대폰 진동 울리기", radius: 385 },
+        { id: "home-microwave", x: 1018, y: 150, label: "전자레인지 알림음 내기", radius: 430 }
+      ],
+      exit: { x: 730, y: 774, label: "현관으로 나가기" },
+      visits: [
+        {
+          title: "장보기 흔적부터 찾아라",
+          intro: "첫날은 레시피보다 엄마의 동선을 훔친다. 내일 어디로 가는지 알아내면 다음 조각을 따라갈 수 있다.",
+          objective: "엄마의 장보기 동선 찾기",
+          clues: [
+            { id: "home-route-note", x: 500, y: 82, title: "장보기 메모", text: "전통시장 꽃게집 → 채소 좌판 → 장류 가게. 엄마의 익숙한 순서가 적혀 있다." },
+            { id: "home-banchan-call", x: 856, y: 92, title: "통화 기록 메모", text: "‘반찬가게 사장님께 숙성 순서 다시 물어볼 것.’ 단골 반찬가게가 있다." }
+          ]
+        },
+        {
+          title: "집에 돌아온 재료를 확인하라",
+          intro: "며칠 뒤 다시 집. 엄마가 시장에서 사 온 재료가 부엌에 정리돼 있다. 실제 재료 구성을 확인하자.",
+          objective: "부엌의 재료 흔적 확인",
+          clues: [
+            { id: "home-aromatics", x: 1185, y: 676, title: "찬장 속 향채 묶음", text: "양파 · 대파 · 마늘 · 생강. 시장에서 본 묶음과 정확히 일치한다." },
+            { id: "home-sweetener", x: 1314, y: 318, title: "냉장고의 매실청", text: "설탕 옆에 늘 같이 놓인 매실청. 단맛을 한 가지로만 내지 않는다." }
+          ]
+        },
+        {
+          title: "엄마가 감춘 중간 메모를 찾아라",
+          intro: "계속 뒤를 밟자 엄마도 눈치가 빨라졌다. 이번 메모는 부엌 안쪽에 숨겨져 있다.",
+          objective: "숙성 중간 단계 확인",
+          clues: [
+            { id: "home-first-rest", x: 1360, y: 600, title: "서랍 속 날짜표", text: "첫 번째 표시가 정확히 24시간 뒤에 찍혀 있다." },
+            { id: "home-reboil", x: 1040, y: 185, title: "냄비 옆 작은 메모", text: "게를 건진 뒤 간장물만 다시 끓인다는 순서 표시가 있다." }
+          ]
+        }
+      ]
+    },
+
+    market: {
+      key: "market",
+      name: "전통시장",
+      timeNames: ["이른 아침", "장날 오전"],
+      palette: { bg: "#1c1714", grid: "rgba(255,242,211,.04)", wall: "#251b17", accent: "#e7b85f" },
+      zones: [{ x: 20, y: 20, w: 1400, h: 770, label: "시장 골목", tone: "#35281f" }],
+      walls: [
+        { x: 14, y: 14, w: 1412, h: 18 }, { x: 14, y: 778, w: 1412, h: 18 },
+        { x: 14, y: 14, w: 18, h: 782 }, { x: 1408, y: 14, w: 18, h: 782 }
+      ],
+      furniture: [
+        { x: 90, y: 80, w: 260, h: 140, kind: "stall-crab", label: "꽃게 좌판", color: "#6c5d56" },
+        { x: 430, y: 74, w: 250, h: 130, kind: "stall-veg", label: "채소 좌판", color: "#5c6649" },
+        { x: 790, y: 78, w: 240, h: 132, kind: "stall-soy", label: "장류 가게", color: "#72513d" },
+        { x: 1130, y: 82, w: 210, h: 130, kind: "stall-fish", label: "생선 좌판", color: "#4f6269" },
+        { x: 118, y: 560, w: 210, h: 120, kind: "stall-fruit", label: "과일 좌판", color: "#6e5d43" },
+        { x: 428, y: 570, w: 220, h: 110, kind: "stall-snack", label: "분식", color: "#704b48" },
+        { x: 790, y: 560, w: 260, h: 120, kind: "stall-dry", label: "건어물", color: "#75694d" },
+        { x: 1160, y: 556, w: 170, h: 120, kind: "stall-box", label: "박스 더미", color: "#665343" }
+      ],
+      spawn: { x: 70, y: 405 },
+      momSpawn: { x: 370, y: 390, angle: 0 },
+      sisterSpawn: { x: 1290, y: 470, angle: Math.PI },
+      patrolMom: [
+        { x: 375, y: 390, pause: .5, look: -.4 }, { x: 218, y: 286, pause: 1.15, look: -.8 },
+        { x: 540, y: 290, pause: .9, look: .7 }, { x: 900, y: 290, pause: 1.1, look: -.65 },
+        { x: 1230, y: 295, pause: .65, look: .55 }, { x: 1315, y: 405, pause: .4, look: -.6 },
+        { x: 1215, y: 490, pause: .3, look: .55 }, { x: 910, y: 480, pause: .7, look: -.55 },
+        { x: 550, y: 480, pause: .55, look: .6 }, { x: 250, y: 475, pause: .45, look: -.55 }
+      ],
+      patrolSister: [
+        { x: 1210, y: 470, pause: .25, look: -.6 }, { x: 1020, y: 390, pause: .35, look: .5 },
+        { x: 740, y: 480, pause: .3, look: -.55 }, { x: 450, y: 400, pause: .3, look: .5 },
+        { x: 210, y: 290, pause: .4, look: -.45 }, { x: 520, y: 300, pause: .25, look: .55 },
+        { x: 820, y: 295, pause: .3, look: -.55 }, { x: 1120, y: 300, pause: .35, look: .5 }
+      ],
+      hideSpots: [
+        { id: "market-west-crate", x: 64, y: 640, label: "박스 뒤에 숨기" },
+        { id: "market-center-awning", x: 720, y: 110, label: "좌판 천막 뒤에 숨기" },
+        { id: "market-east-crate", x: 1368, y: 620, label: "상자 더미에 숨기" }
+      ],
+      distractions: [
+        { id: "market-bell", x: 720, y: 400, label: "가게 종 울리기", radius: 520 },
+        { id: "market-can", x: 1080, y: 470, label: "빈 통 굴리기", radius: 420 },
+        { id: "market-speaker", x: 390, y: 500, label: "시장 방송 버튼 건드리기", radius: 560 }
+      ],
+      exit: { x: 1374, y: 405, label: "시장 골목 빠져나가기" },
+      visits: [
+        {
+          title: "엄마의 장바구니를 미행하라",
+          intro: "엄마의 첫 시장 방문. 사람 사이에서 시야를 끊으며 꽃게와 간장의 선택 기준을 적어 둔다.",
+          objective: "꽃게와 간장 선택 기준 확인",
+          clues: [
+            { id: "market-crab", x: 365, y: 185, title: "꽃게집 포장지", text: "간장게장용은 선도와 살 상태를 우선해서 고른다." },
+            { id: "market-soy-ratio", x: 1034, y: 184, title: "장류 가게 주문 메모", text: "엄마 주문: 진간장과 물은 같은 양에서 시작." }
+          ]
+        },
+        {
+          title: "같은 시장, 다른 장바구니",
+          intro: "다른 날의 장보기는 품목이 달라졌다. 향채와 단맛 재료를 확인하면 레시피 조각이 이어진다.",
+          objective: "향채와 단맛 재료 확인",
+          clues: [
+            { id: "market-aromatics", x: 690, y: 236, title: "향채 묶음", text: "양파 · 대파 · 마늘 · 생강을 한 묶음으로 챙긴다." },
+            { id: "market-maesil", x: 326, y: 545, title: "매실청 영수증", text: "설탕과 별도로 매실청을 구입했다." }
+          ]
+        }
+      ]
+    },
+
+    banchan: {
+      key: "banchan",
+      name: "단골 반찬가게",
+      timeNames: ["오후", "마감 전"],
+      palette: { bg: "#171516", grid: "rgba(255,255,255,.035)", wall: "#211b1c", accent: "#eaa26d" },
+      zones: [
+        { x: 20, y: 20, w: 900, h: 770, label: "판매대", tone: "#362d2b" },
+        { x: 938, y: 20, w: 482, h: 770, label: "뒷주방", tone: "#2c3030" }
+      ],
+      walls: [
+        { x: 920, y: 14, w: 18, h: 300 },
+        { x: 920, y: 430, w: 18, h: 366 }
+      ],
+      furniture: [
+        { x: 70, y: 82, w: 320, h: 115, kind: "display", label: "반찬 냉장 진열대", color: "#57656a" },
+        { x: 500, y: 80, w: 300, h: 112, kind: "display", label: "반찬 진열대", color: "#5d6264" },
+        { x: 120, y: 360, w: 250, h: 100, kind: "counter", label: "계산대", color: "#654b40" },
+        { x: 500, y: 340, w: 250, h: 120, kind: "shelf", label: "포장 선반", color: "#5b4841" },
+        { x: 990, y: 70, w: 340, h: 80, kind: "prep", label: "조리대", color: "#5f6464" },
+        { x: 1010, y: 315, w: 180, h: 100, kind: "pot", label: "간장 솥", color: "#574b49" },
+        { x: 1240, y: 300, w: 130, h: 120, kind: "fridge", label: "숙성 냉장고", color: "#62686d" },
+        { x: 1010, y: 590, w: 220, h: 80, kind: "shelf", label: "양념 선반", color: "#665048" }
+      ],
+      spawn: { x: 90, y: 700 },
+      momSpawn: { x: 450, y: 640, angle: -1.2 },
+      sisterSpawn: { x: 1300, y: 520, angle: Math.PI },
+      patrolMom: [
+        { x: 450, y: 640, pause: .4, look: .55 }, { x: 270, y: 545, pause: .55, look: -.75 },
+        { x: 440, y: 270, pause: .9, look: .65 }, { x: 820, y: 255, pause: .5, look: -.55 },
+        { x: 970, y: 370, pause: .35, look: .6 }, { x: 1190, y: 230, pause: 1.0, look: -.75 },
+        { x: 1360, y: 500, pause: .45, look: .55 }, { x: 1120, y: 520, pause: 1.15, look: -.65 },
+        { x: 970, y: 410, pause: .4, look: .5 }, { x: 800, y: 550, pause: .45, look: -.5 }
+      ],
+      patrolSister: [
+        { x: 1260, y: 520, pause: .35, look: -.65 }, { x: 1100, y: 250, pause: .35, look: .6 },
+        { x: 960, y: 380, pause: .25, look: -.6 }, { x: 760, y: 620, pause: .3, look: .5 },
+        { x: 410, y: 545, pause: .35, look: -.55 }, { x: 520, y: 255, pause: .25, look: .6 },
+        { x: 840, y: 280, pause: .3, look: -.55 }
+      ],
+      hideSpots: [
+        { id: "shop-display", x: 414, y: 120, label: "진열대 끝에 몸 숨기기" },
+        { id: "shop-counter", x: 390, y: 410, label: "계산대 뒤에 숨기" },
+        { id: "shop-kitchen", x: 1365, y: 650, label: "박스 뒤에 숨기" }
+      ],
+      distractions: [
+        { id: "shop-chime", x: 80, y: 250, label: "출입문 차임 울리기", radius: 460 },
+        { id: "shop-timer", x: 965, y: 190, label: "주방 타이머 울리기", radius: 520 },
+        { id: "shop-tray", x: 820, y: 625, label: "빈 쟁반 건드리기", radius: 450 }
+      ],
+      exit: { x: 75, y: 760, label: "가게에서 빠져나가기" },
+      visits: [
+        {
+          title: "조리 순서를 엿들어라",
+          intro: "엄마와 사장님의 대화는 짧다. 진열대로 시야를 끊고 간장물을 게에 붓기 전 처리법을 확인하자.",
+          objective: "간장물 처리 순서 확인",
+          clues: [
+            { id: "shop-cool", x: 1110, y: 170, title: "뒷주방 작업표", text: "간장물과 향채를 끓여 우린 다음, 게에 붓기 전 반드시 완전히 식힌다." },
+            { id: "shop-sweet", x: 825, y: 108, title: "시식표 뒤 메모", text: "설탕만 세게 쓰지 않고 매실청을 섞어 단맛을 둥글게 잡는다." }
+          ]
+        },
+        {
+          title: "숙성 냉장고의 날짜를 훔쳐봐라",
+          intro: "며칠 뒤 같은 가게. 이번에는 숙성 날짜와 재가열 순서를 확인하면 시간축이 맞춰진다.",
+          objective: "숙성 시간과 재가열 순서 확인",
+          clues: [
+            { id: "shop-aging", x: 1380, y: 355, title: "숙성 냉장고 라벨", text: "1차 숙성 기준은 24시간." },
+            { id: "shop-reboil", x: 1120, y: 470, title: "간장 솥 체크표", text: "1차 뒤 게를 건지고 간장물만 다시 끓여 식힌 다음 다시 붓는다." }
+          ]
+        }
+      ]
+    }
+  };
+
+  const FINAL_CLUES = [
+    { id: "final-ratio", x: 500, y: 82, title: "원본 · 배합", text: "진간장 : 물 = 1 : 1에서 시작하고 향채와 단맛 재료로 균형을 맞춘다." },
+    { id: "final-cool", x: 1314, y: 318, title: "원본 · 냉각", text: "끓인 간장물은 게에 붓기 전 완전히 식힌다." },
+    { id: "final-rest", x: 1185, y: 676, title: "원본 · 숙성", text: "1차 24시간 뒤 게를 건지고 간장물을 다시 끓여 식힌 다음 다시 부어 2차 숙성." }
+  ];
+
+  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive) {
+    const base = LOCATIONS[locationKey];
+    const visit = base.visits[Math.min(visitIndex, base.visits.length - 1)];
+    const dayFactor = (day - 1) / Math.max(1, totalDays - 1);
+    const stage = clone(base);
+
+    stage.id = `day-${day}-${locationKey}-visit-${visitIndex + 1}`;
+    stage.day = day;
+    stage.totalDays = totalDays;
+    stage.visitIndex = visitIndex;
+    stage.locationKey = locationKey;
+    stage.name = `${base.name} · ${base.timeNames[visitIndex % base.timeNames.length]}`;
+    stage.kicker = `DAY ${day} / ${totalDays}`;
+    stage.introTitle = visit.title;
+    stage.intro = visit.intro;
+    stage.objective = visit.objective;
+    stage.clues = clone(visit.clues);
+    stage.sisterActive = !!sisterActive;
+    stage.safe = null;
+    stage.ai = {
+      visionRange: 238 + dayFactor * 48,
+      fov: 1.08 + dayFactor * .18,
+      patrolSpeed: 78 + dayFactor * 16,
+      investigateSpeed: 102 + dayFactor * 18,
+      chaseSpeed: 126 + dayFactor * 24,
+      hearing: .92 + dayFactor * .28
+    };
+    stage.sisterAI = {
+      visionRange: 220 + dayFactor * 44,
+      fov: 1.2 + dayFactor * .16,
+      patrolSpeed: 94 + dayFactor * 15,
+      investigateSpeed: 118 + dayFactor * 18,
+      chaseSpeed: 145 + dayFactor * 24,
+      hearing: 1.04 + dayFactor * .24
+    };
+    return stage;
+  }
+
+  function makeFinal(day, totalDays) {
+    const base = LOCATIONS.home;
+    const stage = clone(base);
+    stage.id = "home-finale";
+    stage.day = day;
+    stage.totalDays = totalDays;
+    stage.visitIndex = 3;
+    stage.locationKey = "home";
+    stage.name = "우리 집 · 최종 작전";
+    stage.kicker = `DAY ${day} / ${totalDays} · FINAL`;
+    stage.introTitle = "원본 레시피를 훔쳐라";
+    stage.intro = "며칠 동안 집, 시장, 반찬가게를 오가며 조각을 모았다. 이제 엄마가 감춘 원본만 챙기면 된다. 문제는 언니도 라먀니의 수상한 움직임을 완전히 눈치챘다는 것.";
+    stage.objective = "원본 레시피 확보";
+    stage.clues = clone(FINAL_CLUES);
+    stage.sisterActive = true;
+    stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
+    stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
+    stage.sisterAI = { visionRange: 266, fov: 1.42, patrolSpeed: 108, investigateSpeed: 136, chaseSpeed: 172, hearing: 1.3 };
+    stage.patrolSister = clone(HOME_PATROL).reverse();
+    return stage;
+  }
+
+  function scoreRoute(route) {
+    let score = 0;
+    for (let i = 1; i < route.length; i += 1) {
+      if (route[i] === route[i - 1]) score += 4;
+    }
+    if (route[0] === "home") score += 3;
+    return score;
+  }
+
+  function generateCampaign(seedValue) {
+    const seed = hashSeed(seedValue == null ? Date.now() : seedValue);
+    const rng = mulberry32(seed);
+
+    // Day 1 is always home. Days 2-7 revisit all three places twice in a shuffled order.
+    // We prefer an order without immediate repetition so each day feels like a new lead.
+    const middleBase = ["home", "home", "market", "market", "banchan", "banchan"];
+    let best = middleBase.slice();
+    let bestScore = Infinity;
+    for (let i = 0; i < 80; i += 1) {
+      const candidate = shuffle(middleBase, rng);
+      const score = scoreRoute(candidate);
+      if (score < bestScore) {
+        best = candidate;
+        bestScore = score;
+        if (score === 0) break;
+      }
+    }
+
+    if (bestScore > 0) {
+      best = ["market", "banchan", "home", "market", "banchan", "home"];
+    }
+
+    const route = ["home", ...best];
+    const totalDays = route.length + 1;
+    const counts = { home: 0, market: 0, banchan: 0 };
+    const stages = [];
+
+    route.forEach((locationKey, i) => {
+      const day = i + 1;
+      const visitIndex = counts[locationKey]++;
+      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5));
+    });
+
+    stages.push(makeFinal(totalDays, totalDays));
+    return { seed, route: stages.map(s => s.locationKey), stages };
+  }
+
+  function validateStage(stage) {
+    const required = ["id", "name", "spawn", "momSpawn", "patrolMom", "clues", "exit"];
+    for (const key of required) {
+      if (stage[key] == null) return { ok: false, reason: `missing ${key}` };
+    }
+    if (!Array.isArray(stage.patrolMom) || stage.patrolMom.length < 2) return { ok: false, reason: "mom patrol too short" };
+    if (stage.sisterActive && (!Array.isArray(stage.patrolSister) || stage.patrolSister.length < 2)) {
+      return { ok: false, reason: "sister patrol too short" };
+    }
+    if (!Array.isArray(stage.clues) || stage.clues.length < 1) return { ok: false, reason: "no clues" };
+    return { ok: true };
+  }
+
+  return { LOCATIONS, generateCampaign, validateStage };
+});

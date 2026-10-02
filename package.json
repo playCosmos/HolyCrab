@@ -1,10 +1,10 @@
 {
   "name": "holycrab",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "엄마의 간장게장 레시피를 훔치는 1인용 스텔스 코미디 게임",
+  "description": "여러 날 동안 집·시장·반찬가게를 오가며 간장게장 레시피를 훔치는 스텔스 코미디 게임",
   "scripts": {
-    "test": "node --check src/core.js && node --check src/game.js && node --test tests/core.test.js"
+    "test": "node --check src/core.js && node --check src/mom-ai.js && node --check src/stages.js && node --check src/game.js && node --test tests/core.test.js tests/campaign.test.js"
   },
   "engines": {
     "node": ">=18"

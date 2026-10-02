@@ -14,13 +14,20 @@
 
       <div class="hud">
         <div id="mission-card" class="card">
-          <div id="mission-label">TONIGHT'S MISSION</div>
-          <div id="mission">레시피 단서 찾기</div>
-          <div id="submission">엄마에게 들키지 말 것.</div>
+          <div id="mission-label">DAY 1 / 8</div>
+          <div id="mission">레시피 조각 찾기</div>
+          <div id="submission">며칠에 걸쳐 단서를 모은다.</div>
         </div>
-        <div id="suspicion-card" class="card">
-          <div id="suspicion-title"><span>엄마의 의심</span><span>들키면 방으로!</span></div>
-          <div class="meter"><div id="suspicion-fill"></div></div>
+
+        <div id="alert-stack">
+          <div id="mom-suspicion-card" class="card suspicion-card">
+            <div class="suspicion-title"><span>엄마</span><span id="mom-state">엄마</span></div>
+            <div class="meter"><div id="mom-suspicion-fill" class="suspicion-fill"></div></div>
+          </div>
+          <div id="sister-suspicion-card" class="card suspicion-card hidden">
+            <div class="suspicion-title"><span>언니</span><span id="sister-state">언니</span></div>
+            <div class="meter"><div id="sister-suspicion-fill" class="suspicion-fill sister-fill"></div></div>
+          </div>
         </div>
       </div>
 
@@ -35,7 +42,7 @@
       <div id="toast"></div>
 
       <aside id="journal" class="card hidden">
-        <div class="journal-title">라먀니의 단서 노트</div>
+        <div class="journal-title">라먀니의 레시피 추적 노트</div>
         <div id="journal-body"></div>
       </aside>
 
@@ -45,13 +52,14 @@
             <div class="logo">HOLY<em>CRAB</em></div>
             <div class="subtitle">엄마의 간장게장 레시피를 훔쳐라</div>
             <p class="desc">
-              새벽 1시. 라먀니에게 남은 건 호기심, 빈 밥그릇, 그리고
-              “우리 집 게장은 비밀이야”라는 엄마의 한마디뿐이다.<br><br>
-              집 안을 조용히 뒤져 레시피 단서를 모으고, 부엌의 비밀 상자를 해독한 뒤
-              엄마에게 들키기 전에 현관으로 빠져나가자.
+              하루 만에 훔칠 수 있는 레시피가 아니다.<br>
+              라먀니는 며칠 동안 집, 전통시장, 단골 반찬가게를 오가며
+              엄마가 남긴 조각을 하나씩 맞춰 간다.<br><br>
+              초반에는 엄마만 피하면 되지만, 중후반부터는 수상한 낌새를 눈치챈
+              <strong>언니</strong>까지 추적에 합류한다. 플레이할 때마다 중간 날짜의 장소 순서가 바뀐다.
             </p>
             <div class="actions">
-              <button id="start-btn" class="primary">작전 시작</button>
+              <button id="start-btn" class="primary">첫날 시작</button>
             </div>
           </div>
           <div class="portrait">
@@ -60,15 +68,16 @@
         </div>
       </section>
 
-      <section id="puzzle" class="overlay hidden">
-        <div id="puzzle-panel" class="panel">
-          <h2>엄마의 비밀 레시피 상자</h2>
-          <p>상자 전면에 세 문제가 적혀 있다. 모은 단서만 기억하면 풀 수 있다.</p>
-          <div id="puzzle-body"></div>
-          <p id="puzzle-result"></p>
+      <section id="stage-intro" class="overlay hidden">
+        <div class="panel day-panel">
+          <div id="stage-kicker" class="day-kicker">DAY 1 / 8</div>
+          <h1 id="stage-title">우리 집 — 장보기 흔적부터 찾아라</h1>
+          <p id="stage-desc"></p>
+          <div class="day-rules">
+            이미 모은 단서는 다음 날에도 유지된다. 들켜도 단서는 잃지 않지만 발각 횟수는 누적된다.
+          </div>
           <div class="actions">
-            <button id="puzzle-submit" class="primary">해독</button>
-            <button id="puzzle-close">닫기</button>
+            <button id="stage-begin" class="primary">오늘 시작</button>
           </div>
         </div>
       </section>
@@ -79,11 +88,11 @@
           <p id="result-text"></p>
           <div class="result-stats">
             <div class="stat"><b id="result-rank">S</b><span>작전 등급</span></div>
-            <div class="stat"><b id="result-time">00:00</b><span>소요 시간</span></div>
-            <div class="stat"><b id="result-caught">0회</b><span>들킨 횟수</span></div>
+            <div class="stat"><b id="result-time">00:00</b><span>전체 소요 시간</span></div>
+            <div class="stat"><b id="result-caught">0회</b><span>누적 발각</span></div>
           </div>
           <div class="actions">
-            <button id="restart-btn" class="primary">다시 훔치기</button>
+            <button id="restart-btn" class="primary">새 일정으로 다시 훔치기</button>
           </div>
         </div>
       </section>
@@ -91,6 +100,8 @@
   </main>
 
   <script src="./src/core.js"></script>
+  <script src="./src/mom-ai.js"></script>
+  <script src="./src/stages.js"></script>
   <script src="./src/game.js"></script>
 </body>
 </html>
