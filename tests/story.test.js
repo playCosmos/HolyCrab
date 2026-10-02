@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const Story = require("../src/story.js");
 
 test("opening explains mission, controls, and daily item use", () => {
@@ -55,5 +57,16 @@ test("portrait sources are real PNG paths, not data URIs", () => {
   for (const path of Object.values(Story.PORTRAITS)) {
     assert.match(path, /^\.\/assets\/vn\/.+\.png$/);
     assert.doesNotMatch(path, /^data:/);
+  }
+});
+
+test("VN portraits are real PNG files, not embedded data strings", () => {
+  for (const rel of Object.values(Story.PORTRAITS)) {
+    assert.match(rel, /^\.\/assets\/vn\/.+\.png$/);
+    assert.equal(rel.startsWith("data:"), false);
+    const filePath = path.join(__dirname, "..", rel.replace(/^\.\//, ""));
+    assert.equal(fs.existsSync(filePath), true, `missing portrait: ${rel}`);
+    const signature = fs.readFileSync(filePath).subarray(0, 8).toString("hex");
+    assert.equal(signature, "89504e470d0a1a0a", `not a PNG file: ${rel}`);
   }
 });
