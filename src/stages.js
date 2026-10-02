@@ -169,27 +169,19 @@
 
   function makeItems(locationKey, day, rng, final = false) {
     const slots = shuffle(ITEM_SLOTS[locationKey] || [], rng);
-    const types = final
-      ? ["binding", "cigarette"]
-      : [day % 2 === 1 ? "binding" : "cigarette"];
+    const type = day % 2 === 1 ? "binding" : "cigarette";
+    const slot = slots[0] || { x: 720, y: 400 };
 
-    if (!final && day >= 5 && rng() < .45) {
-      types.push(types[0] === "binding" ? "cigarette" : "binding");
-    }
-
-    return types.map((type, i) => {
-      const slot = slots[i % Math.max(1, slots.length)] || { x: 720, y: 400 };
-      return {
-        id: `item-${day}-${locationKey}-${i}-${type}`,
-        type,
-        x: slot.x,
-        y: slot.y,
-        title: type === "binding" ? "포장끈" : "담배",
-        text: type === "binding"
-          ? "가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
-          : "잠시 이동 속도가 크게 오른다. 대신 피울 때 기침 소리가 난다."
-      };
-    });
+    return [{
+      id: `daily-item-${day}-${locationKey}-${type}`,
+      type,
+      x: slot.x,
+      y: slot.y,
+      title: type === "binding" ? "포장끈" : "담배",
+      text: type === "binding"
+        ? "오늘 지급품. 가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
+        : "오늘 지급품. 잠시 이동 속도가 크게 오른다. 대신 피울 때 기침 소리가 난다."
+    }];
   }
 
   const LOCATIONS = {
