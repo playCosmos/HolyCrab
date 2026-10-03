@@ -16,6 +16,8 @@
   canvas.height = H;
 
   const ui = {
+    startScreen: document.getElementById("start-screen"),
+    startButton: document.getElementById("start-btn"),
     vnScene: document.getElementById("vn-scene"),
     vnCharacter: document.getElementById("vn-character"),
     vnChapter: document.getElementById("vn-chapter"),
@@ -72,7 +74,7 @@
   let exitDoor = null;
   let watchers = [];
 
-  let gameState = "vn";
+  let gameState = "start";
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
@@ -286,6 +288,13 @@
     } else {
       gameState = "playing";
     }
+  }
+
+  function beginFromStartScreen() {
+    if (gameState !== "start") return;
+    audio.ensure();
+    ui.startScreen.classList.add("hidden");
+    startCampaign();
   }
 
   function startCampaign() {
@@ -1210,7 +1219,7 @@
     const dt = Math.min(.035, (now - lastFrame) / 1000 || 0);
     lastFrame = now;
     update(dt);
-    draw();
+    if (gameState !== "start") draw();
     requestAnimationFrame(frame);
   }
 
@@ -1218,6 +1227,10 @@
     if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space"].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
     if (e.repeat) return;
+    if (gameState === "start" && ["Space", "Enter"].includes(e.code)) {
+      beginFromStartScreen();
+      return;
+    }
     if (gameState === "vn" && ["Space", "Enter", "KeyE"].includes(e.code)) {
       nextVN();
       return;
@@ -1231,7 +1244,12 @@
   window.addEventListener("keyup", e => { keys[e.code] = false; });
   window.addEventListener("blur", () => Object.keys(keys).forEach(k => delete keys[k]));
 
-  ui.vnNext.addEventListener("click", event => {
+  ui.startButton.addEventListener("click", event => {
+    event.stopPropagation();
+    beginFromStartScreen();
+  });
+
+    ui.vnNext.addEventListener("click", event => {
     event.stopPropagation();
     nextVN();
   });
@@ -1247,9 +1265,8 @@
     startCampaign();
   });
 
-  startCampaign();
+  ui.vnScene.classList.add("hidden");
   renderJournal();
-  updateMission();
   updateInventoryUI();
   requestAnimationFrame(frame);
 
