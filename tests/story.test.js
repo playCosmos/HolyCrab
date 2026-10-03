@@ -101,3 +101,17 @@ test("persistent gameplay HUD is placed outside the 16:9 playfield", () => {
   assert.match(css, /#controls\s*\{[\s\S]*position:\s*static/);
   assert.match(css, /#inventory\s*\{[\s\S]*position:\s*static/);
 });
+
+
+test("game waits on a neutral start screen before showing VN dialogue", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const gameSource = fs.readFileSync(path.join(__dirname, "..", "src", "game.js"), "utf8");
+
+  assert.match(html, /id="start-screen"/);
+  assert.match(html, /id="start-btn"[^>]*>게임 시작</);
+  assert.ok(html.indexOf('id="start-screen"') < html.indexOf('id="vn-scene"'));
+  assert.doesNotMatch(html.match(/<section id="start-screen"[\s\S]*?<\/section>/)?.[0] || "", /ramyani|엄마|언니|HOLYCRAB/i);
+  assert.match(gameSource, /let gameState = "start"/);
+  assert.match(gameSource, /beginFromStartScreen\(\)/);
+  assert.doesNotMatch(gameSource, /\n\s*startCampaign\(\);\n\s*renderJournal\(\);/);
+});
