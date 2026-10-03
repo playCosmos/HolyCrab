@@ -446,7 +446,9 @@
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
       audio.pickup();
       const detail = obj.type === "binding"
-        ? "1번 키로 가까운 엄마/언니 한 명을 잠시 묶어둘 수 있다."
+        ? (stage.sisterActive
+          ? "1번 키로 가까운 엄마나 언니 한 명을 잠시 묶어둘 수 있다."
+          : "1번 키로 가까운 엄마를 잠시 묶어둘 수 있다.")
         : "2번 키로 사용하면 잠시 빨라진다. 피울 때 기침 소리가 난다.";
       showToast(`${obj.title} 획득 · ${detail}`, 2.8);
       updateInventoryUI();
@@ -467,7 +469,12 @@
     if (obj.kind === "distraction") {
       obj.cooldown = 12;
       emitNoise(obj, obj.radius || 450, true);
-      showToast("소리를 냈다. 엄마와 언니는 각각 들은 위치를 확인한다.", 1.8);
+      showToast(
+        stage.sisterActive
+          ? "소리를 냈다. 엄마와 언니가 각자 들은 위치를 확인한다."
+          : "소리를 냈다. 엄마가 들은 위치를 확인한다.",
+        1.8
+      );
       return;
     }
 
@@ -764,7 +771,12 @@
     }
     const watcher = nearestBindableWatcher();
     if (!watcher) {
-      showToast("묶으려면 엄마나 언니에게 조금 더 가까이 가야 한다.", 1.5);
+      showToast(
+        stage.sisterActive
+          ? "묶으려면 엄마나 언니에게 조금 더 가까이 가야 한다."
+          : "묶으려면 엄마에게 조금 더 가까이 가야 한다.",
+        1.5
+      );
       return;
     }
 
@@ -836,8 +848,8 @@
     if (!stageCluesComplete()) {
       ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
       ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니를 피하며 핵심 기록을 찾자. 황당한 가짜 레시피와 생활 메모는 진행에 필요 없다."
-        : "핵심 기록만 진행에 필요하다. 민트초코나 담뱃재 같은 괴식 메모는 그냥 방해물이다.";
+        ? "엄마와 언니를 피하며 오늘의 핵심 단서를 찾자."
+        : "엄마를 피하며 오늘의 핵심 단서를 찾자.";
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";

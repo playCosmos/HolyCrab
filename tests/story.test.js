@@ -73,3 +73,14 @@ test("VN portraits are real PNG files, not embedded data strings", () => {
     assert.equal(signature, "89504e470d0a1a0a", `not a PNG file: ${rel}`);
   }
 });
+
+
+test("runtime guidance omits fake-recipe examples and does not mention sister before she is active", () => {
+  const gamePath = path.join(__dirname, "..", "src", "game.js");
+  const gameSource = fs.readFileSync(gamePath, "utf8");
+
+  assert.doesNotMatch(gameSource, /민트초코|담뱃재/);
+  assert.match(gameSource, /stage\.sisterActive/);
+  assert.match(gameSource, /엄마가 들은 위치를 확인한다/);
+  assert.match(gameSource, /엄마와 언니가 각자 들은 위치를 확인한다/);
+});
