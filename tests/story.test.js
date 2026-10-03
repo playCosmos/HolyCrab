@@ -110,7 +110,8 @@ test("game waits on a neutral start screen before showing VN dialogue", () => {
   assert.match(html, /id="start-screen"/);
   assert.match(html, /id="start-btn"[^>]*>게임 시작</);
   assert.ok(html.indexOf('id="start-screen"') < html.indexOf('id="vn-scene"'));
-  assert.doesNotMatch(html.match(/<section id="start-screen"[\s\S]*?<\/section>/)?.[0] || "", /ramyani|엄마|언니|HOLYCRAB/i);
+  const startScreen = html.match(/<section id="start-screen"[\s\S]*?<\/section>/)?.[0] || "";
+  assert.doesNotMatch(startScreen, /<img|ramyani\.png|mom\.png|sister\.png|언니|HOLYCRAB/i);
   assert.match(gameSource, /let gameState = "start"/);
   assert.match(gameSource, /beginFromStartScreen\(\)/);
   assert.doesNotMatch(gameSource, /\n\s*startCampaign\(\);\n\s*renderJournal\(\);/);
