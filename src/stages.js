@@ -189,13 +189,27 @@
       key: "home",
       name: "우리 집",
       timeNames: ["새벽", "저녁", "깊은 밤"],
-      palette: { bg: "#17131b", grid: "rgba(255,255,255,.035)", wall: "#17131a", accent: "#f2ae73" },
+      palette: {
+        bg: "#17131b",
+        grid: "rgba(255,255,255,.035)",
+        wall: "#17131a",
+        wallEdge: "rgba(255,238,214,.16)",
+        passage: "rgba(255,226,189,.30)",
+        passageEdge: "rgba(255,226,189,.60)",
+        exitLocked: "rgba(244,210,158,.62)",
+        exitReady: "#9fd68a",
+        accent: "#f2ae73"
+      },
       zones: [
         { x: 20, y: 20, w: 410, h: 770, label: "라먀니의 방", tone: "#2b2531" },
         { x: 448, y: 20, w: 512, h: 770, label: "거실", tone: "#2d272d" },
         { x: 978, y: 20, w: 442, h: 770, label: "부엌", tone: "#302629" }
       ],
       walls: HOME_WALLS,
+      passages: [
+        { x: 430, y: 272, w: 18, h: 126, label: "라먀니 방 ↔ 거실" },
+        { x: 960, y: 220, w: 18, h: 130, label: "거실 ↔ 부엌" }
+      ],
       furniture: HOME_FURNITURE,
       spawn: { x: 228, y: 340 },
       momSpawn: { x: 600, y: 300, angle: 0 },
@@ -248,12 +262,23 @@
       key: "market",
       name: "전통시장",
       timeNames: ["이른 아침", "장날 오전"],
-      palette: { bg: "#1c1714", grid: "rgba(255,242,211,.04)", wall: "#251b17", accent: "#e7b85f" },
+      palette: {
+        bg: "#1c1714",
+        grid: "rgba(255,242,211,.04)",
+        wall: "#251b17",
+        wallEdge: "rgba(255,229,181,.15)",
+        passage: "rgba(255,226,189,.26)",
+        passageEdge: "rgba(255,226,189,.55)",
+        exitLocked: "rgba(244,210,158,.62)",
+        exitReady: "#9fd68a",
+        accent: "#e7b85f"
+      },
       zones: [{ x: 20, y: 20, w: 1400, h: 770, label: "시장 골목", tone: "#35281f" }],
       walls: [
         { x: 14, y: 14, w: 1412, h: 18 }, { x: 14, y: 778, w: 1412, h: 18 },
         { x: 14, y: 14, w: 18, h: 782 }, { x: 1408, y: 14, w: 18, h: 782 }
       ],
+      passages: [],
       furniture: [
         { x: 90, y: 80, w: 260, h: 140, kind: "stall-crab", label: "꽃게 좌판", color: "#6c5d56" },
         { x: 430, y: 74, w: 250, h: 130, kind: "stall-veg", label: "채소 좌판", color: "#5c6649" },
@@ -317,7 +342,17 @@
       key: "banchan",
       name: "단골 반찬가게",
       timeNames: ["오후", "마감 전"],
-      palette: { bg: "#171516", grid: "rgba(255,255,255,.035)", wall: "#211b1c", accent: "#eaa26d" },
+      palette: {
+        bg: "#171516",
+        grid: "rgba(255,255,255,.035)",
+        wall: "#211b1c",
+        wallEdge: "rgba(242,233,218,.16)",
+        passage: "rgba(255,226,189,.30)",
+        passageEdge: "rgba(255,226,189,.60)",
+        exitLocked: "rgba(244,210,158,.62)",
+        exitReady: "#9fd68a",
+        accent: "#eaa26d"
+      },
       zones: [
         { x: 20, y: 20, w: 900, h: 770, label: "판매대", tone: "#362d2b" },
         { x: 938, y: 20, w: 482, h: 770, label: "뒷주방", tone: "#2c3030" }
@@ -325,6 +360,9 @@
       walls: [
         { x: 920, y: 14, w: 18, h: 300 },
         { x: 920, y: 430, w: 18, h: 366 }
+      ],
+      passages: [
+        { x: 920, y: 314, w: 18, h: 116, label: "판매대 ↔ 뒷주방" }
       ],
       furniture: [
         { x: 70, y: 82, w: 320, h: 115, kind: "display", label: "반찬 냉장 진열대", color: "#57656a" },
