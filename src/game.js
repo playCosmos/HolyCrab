@@ -933,7 +933,28 @@
   }
 
   function drawWallsAndFurniture() {
-    for (const w of walls) roundedRect(w.x, w.y, w.w, w.h, 5, stage.palette.wall);
+    ctx.lineWidth = 1.5;
+    for (const w of walls) {
+      roundedRect(
+        w.x, w.y, w.w, w.h, 5,
+        stage.palette.wall,
+        stage.palette.wallEdge || "rgba(255,255,255,.12)"
+      );
+    }
+
+    for (const p of (stage.passages || [])) {
+      ctx.save();
+      ctx.shadowColor = stage.palette.passageEdge || "rgba(255,226,189,.55)";
+      ctx.shadowBlur = 7;
+      ctx.lineWidth = 2;
+      roundedRect(
+        p.x, p.y, p.w, p.h, 4,
+        stage.palette.passage || "rgba(255,226,189,.28)",
+        stage.palette.passageEdge || "rgba(255,226,189,.55)"
+      );
+      ctx.restore();
+    }
+
     for (const f of furniture) {
       let fill = f.color || "#554549";
       if (!f.color && f.kind === "bed") fill = "#715c69";
@@ -998,12 +1019,35 @@
       ctx.fillText("秘", safe.x - 7, safe.y + 5);
     }
 
-    ctx.strokeStyle = stageCluesComplete() && (!safe || hasRecipe) ? "#9fd68a" : "rgba(255,255,255,.17)";
-    ctx.lineWidth = 5;
+    const exitReady = stageCluesComplete() && (!safe || hasRecipe);
+    const exitColor = exitReady
+      ? (stage.palette.exitReady || "#9fd68a")
+      : (stage.palette.exitLocked || "rgba(244,210,158,.62)");
+    const edgeDistances = {
+      left: exitDoor.x,
+      right: W - exitDoor.x,
+      top: exitDoor.y,
+      bottom: H - exitDoor.y
+    };
+    const nearestEdge = Object.entries(edgeDistances).sort((a, b) => a[1] - b[1])[0][0];
+    const verticalExit = nearestEdge === "left" || nearestEdge === "right";
+
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.shadowColor = exitColor;
+    ctx.shadowBlur = exitReady ? 10 : 6;
+    ctx.strokeStyle = exitColor;
+    ctx.lineWidth = exitReady ? 6 : 5;
     ctx.beginPath();
-    ctx.moveTo(exitDoor.x - 38, exitDoor.y);
-    ctx.lineTo(exitDoor.x + 38, exitDoor.y);
+    if (verticalExit) {
+      ctx.moveTo(exitDoor.x, exitDoor.y - 38);
+      ctx.lineTo(exitDoor.x, exitDoor.y + 38);
+    } else {
+      ctx.moveTo(exitDoor.x - 38, exitDoor.y);
+      ctx.lineTo(exitDoor.x + 38, exitDoor.y);
+    }
     ctx.stroke();
+    ctx.restore();
   }
 
   function drawNoise() {

@@ -145,3 +145,28 @@ test("AI creates a bounded local search pattern", () => {
     assert.ok(p.y >= 28 && p.y <= 72);
   }
 });
+
+
+test("interior passage markers are preserved for navigation readability", () => {
+  const home = Campaign.LOCATIONS.home;
+  const market = Campaign.LOCATIONS.market;
+  const banchan = Campaign.LOCATIONS.banchan;
+
+  assert.equal(home.passages.length, 2);
+  assert.deepEqual(home.passages.map(p => [p.x, p.y, p.w, p.h]), [
+    [430, 272, 18, 126],
+    [960, 220, 18, 130]
+  ]);
+  assert.equal(market.passages.length, 0);
+  assert.equal(banchan.passages.length, 1);
+  assert.deepEqual(
+    [banchan.passages[0].x, banchan.passages[0].y, banchan.passages[0].w, banchan.passages[0].h],
+    [920, 314, 18, 116]
+  );
+
+  for (const location of [home, market, banchan]) {
+    assert.ok(location.palette.wallEdge);
+    assert.ok(location.palette.exitLocked);
+    assert.ok(location.palette.exitReady);
+  }
+});
