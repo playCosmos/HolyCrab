@@ -10,80 +10,86 @@
 <body>
   <main id="app">
     <section id="game-wrap" aria-label="HolyCrab game">
-      <canvas id="game" width="1440" height="810"></canvas>
-
-      <div class="hud">
-        <div id="mission-card" class="card">
-          <div id="mission-label">DAY 1 / 10</div>
-          <div id="mission">레시피 조각 찾기</div>
-          <div id="submission">며칠에 걸쳐 단서를 모은다.</div>
-        </div>
-
-        <div id="alert-stack">
-          <div id="mom-suspicion-card" class="card suspicion-card">
-            <div class="suspicion-title"><span>엄마</span><span id="mom-state">엄마</span></div>
-            <div class="meter"><div id="mom-suspicion-fill" class="suspicion-fill"></div></div>
+      <div id="top-status-bar" class="status-bar top-status-bar">
+        <div class="hud">
+          <div id="mission-card" class="card">
+            <div id="mission-label">DAY 1 / 10</div>
+            <div id="mission">레시피 조각 찾기</div>
+            <div id="submission">며칠에 걸쳐 단서를 모은다.</div>
           </div>
-          <div id="sister-suspicion-card" class="card suspicion-card hidden">
-            <div class="suspicion-title"><span>언니</span><span id="sister-state">언니</span></div>
-            <div class="meter"><div id="sister-suspicion-fill" class="suspicion-fill sister-fill"></div></div>
+
+          <div id="alert-stack">
+            <div id="mom-suspicion-card" class="card suspicion-card">
+              <div class="suspicion-title"><span>엄마</span><span id="mom-state">엄마</span></div>
+              <div class="meter"><div id="mom-suspicion-fill" class="suspicion-fill"></div></div>
+            </div>
+            <div id="sister-suspicion-card" class="card suspicion-card hidden">
+              <div class="suspicion-title"><span>언니</span><span id="sister-state">언니</span></div>
+              <div class="meter"><div id="sister-suspicion-fill" class="suspicion-fill sister-fill"></div></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div id="controls" class="card">
-        <kbd>WASD</kbd>/<kbd>방향키</kbd> 이동 ·
-        <kbd>SHIFT</kbd> 살금살금 ·
-        <kbd>E</kbd> 조사/줍기/숨기 ·
-        <kbd>1</kbd> 포장끈 ·
-        <kbd>2</kbd> 담배 ·
-        <kbd>TAB</kbd> 기록
+      <div id="playfield">
+        <canvas id="game" width="1440" height="810"></canvas>
+
+        <div id="prompt"></div>
+        <div id="toast"></div>
+
+        <aside id="journal" class="card hidden">
+          <div class="journal-title">라먀니의 레시피 추적 노트</div>
+          <div id="journal-body"></div>
+        </aside>
+
+        <section id="vn-scene" class="vn-scene">
+          <div class="vn-dim"></div>
+          <div id="vn-chapter" class="vn-chapter">PROLOGUE</div>
+          <img id="vn-character" class="vn-character" src="./assets/vn/ramyani.png" alt="">
+          <div class="vn-dialogue">
+            <div class="vn-topline">
+              <div id="vn-speaker" class="vn-speaker">라먀니</div>
+              <div id="vn-progress" class="vn-progress">1 / 1</div>
+            </div>
+            <div id="vn-text" class="vn-text"></div>
+            <div id="vn-meta" class="vn-meta"></div>
+            <button id="vn-next" class="vn-next" type="button">다음 ▶</button>
+          </div>
+        </section>
+
+        <section id="result" class="overlay hidden">
+          <div class="panel result-panel">
+            <h1 id="result-title">작전 성공</h1>
+            <p id="result-text"></p>
+            <div class="result-stats">
+              <div class="stat"><b id="result-rank">S</b><span>작전 등급</span></div>
+              <div class="stat"><b id="result-time">00:00</b><span>전체 소요 시간</span></div>
+              <div class="stat"><b id="result-caught">0회</b><span>누적 발각</span></div>
+            </div>
+            <div class="actions">
+              <button id="restart-btn" class="primary">새 일정으로 다시 훔치기</button>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div id="inventory" class="card">
-        <div class="inventory-title">소지품</div>
-        <div class="inventory-row"><kbd>1</kbd><span id="inventory-binding">포장끈 × 0</span></div>
-        <div class="inventory-row"><kbd>2</kbd><span id="inventory-cigarette">담배 × 0</span></div>
-        <div id="boost-status" class="boost-status hidden"></div>
+      <div id="bottom-status-bar" class="status-bar bottom-status-bar">
+        <div id="controls" class="card">
+          <kbd>WASD</kbd>/<kbd>방향키</kbd> 이동 ·
+          <kbd>SHIFT</kbd> 살금살금 ·
+          <kbd>E</kbd> 조사/줍기/숨기 ·
+          <kbd>1</kbd> 포장끈 ·
+          <kbd>2</kbd> 담배 ·
+          <kbd>TAB</kbd> 기록
+        </div>
+
+        <div id="inventory" class="card">
+          <div class="inventory-title">소지품</div>
+          <div class="inventory-row"><kbd>1</kbd><span id="inventory-binding">포장끈 × 0</span></div>
+          <div class="inventory-row"><kbd>2</kbd><span id="inventory-cigarette">담배 × 0</span></div>
+          <div id="boost-status" class="boost-status hidden"></div>
+        </div>
       </div>
-
-      <div id="prompt"></div>
-      <div id="toast"></div>
-
-      <aside id="journal" class="card hidden">
-        <div class="journal-title">라먀니의 레시피 추적 노트</div>
-        <div id="journal-body"></div>
-      </aside>
-
-      <section id="vn-scene" class="vn-scene">
-        <div class="vn-dim"></div>
-        <div id="vn-chapter" class="vn-chapter">PROLOGUE</div>
-        <img id="vn-character" class="vn-character" src="./assets/vn/ramyani.png" alt="">
-        <div class="vn-dialogue">
-          <div class="vn-topline">
-            <div id="vn-speaker" class="vn-speaker">라먀니</div>
-            <div id="vn-progress" class="vn-progress">1 / 1</div>
-          </div>
-          <div id="vn-text" class="vn-text"></div>
-          <div id="vn-meta" class="vn-meta"></div>
-          <button id="vn-next" class="vn-next" type="button">다음 ▶</button>
-        </div>
-      </section>
-
-      <section id="result" class="overlay hidden">
-        <div class="panel result-panel">
-          <h1 id="result-title">작전 성공</h1>
-          <p id="result-text"></p>
-          <div class="result-stats">
-            <div class="stat"><b id="result-rank">S</b><span>작전 등급</span></div>
-            <div class="stat"><b id="result-time">00:00</b><span>전체 소요 시간</span></div>
-            <div class="stat"><b id="result-caught">0회</b><span>누적 발각</span></div>
-          </div>
-          <div class="actions">
-            <button id="restart-btn" class="primary">새 일정으로 다시 훔치기</button>
-          </div>
-        </div>
-      </section>
     </section>
   </main>
 
