@@ -37,6 +37,19 @@
     return out;
   }
 
+  function circleOverlapsRect(point, radius, rect) {
+    const nx = Math.max(rect.x, Math.min(point.x, rect.x + rect.w));
+    const ny = Math.max(rect.y, Math.min(point.y, rect.y + rect.h));
+    const dx = point.x - nx;
+    const dy = point.y - ny;
+    return dx * dx + dy * dy < radius * radius;
+  }
+
+  function clearOfSolids(point, radius, stage) {
+    const solids = [...(stage.walls || []), ...(stage.furniture || [])];
+    return !solids.some(rect => circleOverlapsRect(point, radius, rect));
+  }
+
   const HOME_WALLS = [
     { x: 430, y: 14, w: 18, h: 258 },
     { x: 430, y: 398, w: 18, h: 398 },
@@ -63,7 +76,7 @@
     { x: 850, y: 300, pause: .35, look: -.55 },
     { x: 1040, y: 280, pause: .75, look: .8 },
     { x: 1240, y: 200, pause: .5, look: -.5 },
-    { x: 1380, y: 260, pause: .35, look: .65 },
+    { x: 1375, y: 335, pause: .35, look: .65 },
     { x: 1380, y: 480, pause: .45, look: -.7 },
     { x: 1240, y: 470, pause: .6, look: .65 },
     { x: 1035, y: 460, pause: .45, look: -.5 },
@@ -215,7 +228,7 @@
       furniture: HOME_FURNITURE,
       spawn: { x: 228, y: 340 },
       momSpawn: { x: 600, y: 300, angle: 0 },
-      sisterSpawn: { x: 1040, y: 650, angle: -1.2 },
+      sisterSpawn: { x: 780, y: 700, angle: -1.2 },
       patrolMom: HOME_PATROL,
       patrolSister: HOME_PATROL.slice().reverse(),
       hideSpots: [
@@ -606,8 +619,18 @@
       if (stage[key] == null) return { ok: false, reason: `missing ${key}` };
     }
     if (!Array.isArray(stage.patrolMom) || stage.patrolMom.length < 2) return { ok: false, reason: "mom patrol too short" };
+    if (!clearOfSolids(stage.momSpawn, 19, stage)) return { ok: false, reason: "mom spawn intersects solid" };
+    if (stage.patrolMom.some(point => !clearOfSolids(point, 19, stage))) {
+      return { ok: false, reason: "mom patrol intersects solid" };
+    }
     if (stage.sisterActive && (!Array.isArray(stage.patrolSister) || stage.patrolSister.length < 2)) {
       return { ok: false, reason: "sister patrol too short" };
+    }
+    if (stage.sisterActive && !clearOfSolids(stage.sisterSpawn, 17, stage)) {
+      return { ok: false, reason: "sister spawn intersects solid" };
+    }
+    if (stage.sisterActive && stage.patrolSister.some(point => !clearOfSolids(point, 17, stage))) {
+      return { ok: false, reason: "sister patrol intersects solid" };
     }
     if (!Array.isArray(stage.clues) || stage.clues.length < 1) return { ok: false, reason: "no clues" };
     if (!Array.isArray(stage.decoys)) return { ok: false, reason: "decoys missing" };
