@@ -706,3 +706,75 @@ button:active { transform: translateY(0); }
     padding: 5px 7px;
   }
 }
+
+
+/* Neutral waiting screen shown before any VN character appears. */
+.start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(244,160,111,.14), transparent 32%),
+    radial-gradient(circle at 72% 68%, rgba(230,167,79,.09), transparent 28%),
+    linear-gradient(145deg, #17131d, #0d0b11 72%);
+}
+
+.start-screen.hidden {
+  display: none;
+}
+
+.start-panel {
+  width: min(620px, 88%);
+  padding: 42px 44px 36px;
+  text-align: center;
+  border-radius: 24px;
+  border: 1px solid rgba(255,235,214,.16);
+  background: rgba(26,20,28,.90);
+  box-shadow: 0 26px 70px rgba(0,0,0,.48);
+}
+
+.start-kicker {
+  margin-bottom: 12px;
+  color: #f0b27f;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.start-panel h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+
+.start-panel p {
+  margin: 18px auto 26px;
+  max-width: 460px;
+  color: rgba(255,245,234,.70);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.start-btn {
+  min-width: 170px;
+  padding: 13px 24px;
+  font-size: 16px;
+}
+
+.start-hint {
+  margin-top: 13px;
+  color: rgba(255,245,234,.42);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+@media (max-width: 760px) {
+  .start-panel {
+    width: min(94%, 620px);
+    padding: 30px 22px 26px;
+  }
+}
