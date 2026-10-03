@@ -84,3 +84,20 @@ test("runtime guidance omits fake-recipe examples and does not mention sister be
   assert.match(gameSource, /엄마가 들은 위치를 확인한다/);
   assert.match(gameSource, /엄마와 언니가 각자 들은 위치를 확인한다/);
 });
+
+
+test("persistent gameplay HUD is placed outside the 16:9 playfield", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "style.css"), "utf8");
+
+  const top = html.indexOf('id="top-status-bar"');
+  const playfield = html.indexOf('id="playfield"');
+  const bottom = html.indexOf('id="bottom-status-bar"');
+  const canvas = html.indexOf('id="game"');
+
+  assert.ok(top >= 0 && playfield > top && canvas > playfield && bottom > canvas);
+  assert.match(css, /#game-wrap\s*\{[\s\S]*grid-template-rows:/);
+  assert.match(css, /#playfield\s*\{[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
+  assert.match(css, /#controls\s*\{[\s\S]*position:\s*static/);
+  assert.match(css, /#inventory\s*\{[\s\S]*position:\s*static/);
+});

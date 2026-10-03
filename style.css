@@ -489,3 +489,220 @@ button:active { transform: translateY(0); }
 .vn-summary-row span {
   color: rgba(255,245,234,.64);
 }
+
+
+/* Persistent gameplay chrome lives outside the 16:9 playfield. */
+#game-wrap {
+  --top-bar-h: 58px;
+  --bottom-bar-h: 50px;
+  width: min(100vw, calc((100vh - var(--top-bar-h) - var(--bottom-bar-h)) * 16 / 9));
+  aspect-ratio: auto;
+  display: grid;
+  grid-template-rows: var(--top-bar-h) auto var(--bottom-bar-h);
+  overflow: hidden;
+}
+
+#playfield {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #1a151d;
+}
+
+#playfield > canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.status-bar {
+  position: relative;
+  z-index: 30;
+  width: 100%;
+  min-width: 0;
+  background: rgba(14, 11, 17, .97);
+  border-color: rgba(255,235,214,.14);
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+}
+
+.top-status-bar {
+  border-bottom: 1px solid rgba(255,235,214,.13);
+}
+
+.bottom-status-bar {
+  border-top: 1px solid rgba(255,235,214,.13);
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hud {
+  position: static;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#mission-card {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+#mission-label {
+  flex: 0 0 auto;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+#mission {
+  flex: 0 1 auto;
+  margin-top: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#submission {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,.10);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#alert-stack {
+  flex: 0 0 auto;
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.suspicion-card {
+  width: 176px;
+  padding: 6px 9px;
+}
+
+.suspicion-title {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.meter {
+  height: 6px;
+}
+
+#controls {
+  position: static;
+  left: auto;
+  bottom: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 9px;
+  font-size: 11px;
+  line-height: 1.25;
+  opacity: .92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#inventory {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 6px 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.inventory-title {
+  margin: 0;
+  font-size: 10px;
+}
+
+.inventory-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 0;
+  font-size: 11px;
+}
+
+.boost-status {
+  margin: 0;
+  padding: 0 0 0 9px;
+  border-top: 0;
+  border-left: 1px solid rgba(255,255,255,.09);
+  font-size: 10px;
+}
+
+#prompt {
+  bottom: 16px;
+}
+
+#toast {
+  top: 16px;
+}
+
+#journal {
+  top: 18px;
+  max-height: calc(100% - 36px);
+}
+
+@media (max-width: 900px) {
+  #game-wrap {
+    --top-bar-h: 54px;
+    --bottom-bar-h: 46px;
+  }
+  #submission { display: none; }
+  .suspicion-card { width: 142px; }
+  #controls { font-size: 10px; }
+  #inventory { gap: 6px; }
+  #inventory kbd { display: none; }
+}
+
+@media (max-width: 760px) {
+  #controls {
+    display: block;
+    font-size: 9px;
+  }
+  #mission-card {
+    width: auto;
+  }
+  #alert-stack {
+    width: auto;
+  }
+  .suspicion-card {
+    width: 118px;
+    padding: 5px 7px;
+  }
+  #inventory {
+    position: static;
+    right: auto;
+    bottom: auto;
+    min-width: 0;
+    padding: 5px 7px;
+  }
+}
