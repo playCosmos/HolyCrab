@@ -170,3 +170,43 @@ test("interior passage markers are preserved for navigation readability", () => 
     assert.ok(location.palette.exitReady);
   }
 });
+
+
+test("watcher spawns and patrol points stay clear of walls and furniture", () => {
+  const overlaps = (point, radius, rect) => {
+    const nx = Math.max(rect.x, Math.min(point.x, rect.x + rect.w));
+    const ny = Math.max(rect.y, Math.min(point.y, rect.y + rect.h));
+    const dx = point.x - nx;
+    const dy = point.y - ny;
+    return dx * dx + dy * dy < radius * radius;
+  };
+
+  for (let i = 0; i < 80; i += 1) {
+    const c = Campaign.generateCampaign(`watcher-clear-${i}`);
+    for (const stage of c.stages) {
+      const solids = [...(stage.walls || []), ...(stage.furniture || [])];
+
+      assert.equal(solids.some(rect => overlaps(stage.momSpawn, 19, rect)), false, `${stage.id}: mom spawn blocked`);
+      assert.equal(stage.patrolMom.some(point => solids.some(rect => overlaps(point, 19, rect))), false, `${stage.id}: mom patrol blocked`);
+
+      if (stage.sisterActive) {
+        assert.equal(solids.some(rect => overlaps(stage.sisterSpawn, 17, rect)), false, `${stage.id}: sister spawn blocked`);
+        assert.equal(stage.patrolSister.some(point => solids.some(rect => overlaps(point, 17, rect))), false, `${stage.id}: sister patrol blocked`);
+      }
+    }
+  }
+});
+
+test("home sister starts in open living-room floor instead of the pantry edge", () => {
+  const home = Campaign.LOCATIONS.home;
+  assert.deepEqual(
+    { x: home.sisterSpawn.x, y: home.sisterSpawn.y },
+    { x: 780, y: 700 }
+  );
+
+  const distanceToKitchenPassage = Math.hypot(
+    home.sisterSpawn.x - (960 + 9),
+    home.sisterSpawn.y - (220 + 65)
+  );
+  assert.ok(distanceToKitchenPassage > 180);
+});
