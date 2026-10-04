@@ -780,7 +780,8 @@
         }
       }
       moveWatcherToward(watcher, watcher.target, watcher.config.chaseSpeed, dt);
-      AI.coolBrain(brain, dt);
+      if (sees) brain.scanPhase += dt;
+      else AI.coolBrain(brain, dt);
       return false;
     }
 
