@@ -480,6 +480,11 @@
     }
 
     if (obj.kind === "hide") {
+      const seenBy = watchers.find(watcher => watcher.boundTimer <= 0 && watcherCanSeePlayer(watcher));
+      if (seenBy) {
+        showToast(`${seenBy.name}가 보고 있는 앞에서는 숨을 수 없다.`, 1.5);
+        return;
+      }
       player.hidden = true;
       player.hideSpot = obj.id;
       player.x = obj.x;
