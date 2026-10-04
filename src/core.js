@@ -49,6 +49,233 @@
     return next;
   }
 
+
+  function pointClearForCircle(point, radius, solids, bounds) {
+    if (
+      point.x < bounds.x + radius ||
+      point.x > bounds.x + bounds.w - radius ||
+      point.y < bounds.y + radius ||
+      point.y > bounds.y + bounds.h - radius
+    ) return false;
+    return !(solids || []).some(rect => circleOverlapsRect(point, radius, rect));
+  }
+
+  function expandedRect(rect, amount) {
+    return {
+      x: rect.x - amount,
+      y: rect.y - amount,
+      w: rect.w + amount * 2,
+      h: rect.h + amount * 2
+    };
+  }
+
+  function segmentClearForCircle(a, b, radius, solids, bounds) {
+    if (!pointClearForCircle(a, radius, solids, bounds)) return false;
+    if (!pointClearForCircle(b, radius, solids, bounds)) return false;
+    return !(solids || []).some(rect => segmentHitsRect(a, b, expandedRect(rect, radius)));
+  }
+
+  function planCirclePath(start, target, radius, solids, bounds, cellSize = 28) {
+    if (segmentClearForCircle(start, target, radius, solids, bounds)) {
+      return { points: [{ x: target.x, y: target.y }], target: { x: target.x, y: target.y }, exact: true };
+    }
+
+    const minX = bounds.x + radius;
+    const maxX = bounds.x + bounds.w - radius;
+    const minY = bounds.y + radius;
+    const maxY = bounds.y + bounds.h - radius;
+    const step = Math.max(18, Number(cellSize) || 28);
+    const cols = Math.max(2, Math.floor((maxX - minX) / step) + 1);
+    const rows = Math.max(2, Math.floor((maxY - minY) / step) + 1);
+
+    const key = (x, y) => y * cols + x;
+    const pointFor = (x, y) => ({
+      x: clamp(minX + x * step, minX, maxX),
+      y: clamp(minY + y * step, minY, maxY)
+    });
+    const cellFor = point => ({
+      x: clamp(Math.round((point.x - minX) / step), 0, cols - 1),
+      y: clamp(Math.round((point.y - minY) / step), 0, rows - 1)
+    });
+    const freeCell = (x, y) => {
+      if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
+      return pointClearForCircle(pointFor(x, y), radius, solids, bounds);
+    };
+
+    function nearestFreeCell(point, requireVisible) {
+      const origin = cellFor(point);
+      const maxRing = Math.max(cols, rows);
+      let best = null;
+      let bestDistance = Infinity;
+      for (let ring = 0; ring <= maxRing; ring += 1) {
+        for (let y = origin.y - ring; y <= origin.y + ring; y += 1) {
+          for (let x = origin.x - ring; x <= origin.x + ring; x += 1) {
+            if (Math.max(Math.abs(x - origin.x), Math.abs(y - origin.y)) !== ring) continue;
+            if (!freeCell(x, y)) continue;
+            const p = pointFor(x, y);
+            if (requireVisible && !segmentClearForCircle(point, p, radius, solids, bounds)) continue;
+            const d = dist(point, p);
+            if (d < bestDistance) {
+              best = { x, y };
+              bestDistance = d;
+            }
+          }
+        }
+        if (best) return best;
+      }
+      return null;
+    }
+
+    const startCell = nearestFreeCell(start, true);
+    const goalCell = nearestFreeCell(target, false);
+    if (!startCell || !goalCell) {
+      return { points: [], target: { x: start.x, y: start.y }, exact: false };
+    }
+
+    const startKey = key(startCell.x, startCell.y);
+    const goalKey = key(goalCell.x, goalCell.y);
+    const open = [startKey];
+    const openSet = new Set(open);
+    const cameFrom = new Map();
+    const gScore = new Map([[startKey, 0]]);
+    const fScore = new Map([[startKey, dist(pointFor(startCell.x, startCell.y), pointFor(goalCell.x, goalCell.y))]]);
+    const coords = new Map([[startKey, startCell]]);
+    const directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1],
+      [-1, -1], [1, -1], [-1, 1], [1, 1]
+    ];
+
+    let found = false;
+    let guard = cols * rows * 4;
+    while (open.length && guard-- > 0) {
+      let bestIndex = 0;
+      let currentKey = open[0];
+      let currentF = fScore.get(currentKey) ?? Infinity;
+      for (let i = 1; i < open.length; i += 1) {
+        const candidateF = fScore.get(open[i]) ?? Infinity;
+        if (candidateF < currentF) {
+          currentF = candidateF;
+          currentKey = open[i];
+          bestIndex = i;
+        }
+      }
+      open.splice(bestIndex, 1);
+      openSet.delete(currentKey);
+      if (currentKey === goalKey) {
+        found = true;
+        break;
+      }
+
+      const current = coords.get(currentKey);
+      const currentPoint = pointFor(current.x, current.y);
+      for (const [ox, oy] of directions) {
+        const nx = current.x + ox;
+        const ny = current.y + oy;
+        if (!freeCell(nx, ny)) continue;
+
+        if (ox !== 0 && oy !== 0) {
+          if (!freeCell(current.x + ox, current.y) || !freeCell(current.x, current.y + oy)) continue;
+        }
+
+        const nextPoint = pointFor(nx, ny);
+        if (!segmentClearForCircle(currentPoint, nextPoint, radius, solids, bounds)) continue;
+
+        const nextKey = key(nx, ny);
+        coords.set(nextKey, { x: nx, y: ny });
+        const tentative = (gScore.get(currentKey) ?? Infinity) + dist(currentPoint, nextPoint);
+        if (tentative >= (gScore.get(nextKey) ?? Infinity)) continue;
+
+        cameFrom.set(nextKey, currentKey);
+        gScore.set(nextKey, tentative);
+        fScore.set(nextKey, tentative + dist(nextPoint, pointFor(goalCell.x, goalCell.y)));
+        if (!openSet.has(nextKey)) {
+          open.push(nextKey);
+          openSet.add(nextKey);
+        }
+      }
+    }
+
+    if (!found) {
+      return { points: [], target: { x: start.x, y: start.y }, exact: false };
+    }
+
+    const raw = [];
+    let cursor = goalKey;
+    while (cursor !== startKey) {
+      const c = coords.get(cursor);
+      if (!c) break;
+      raw.push(pointFor(c.x, c.y));
+      cursor = cameFrom.get(cursor);
+      if (cursor == null) break;
+    }
+    raw.reverse();
+
+    const goalPoint = pointFor(goalCell.x, goalCell.y);
+    let resolvedTarget = goalPoint;
+    let exact = false;
+    if (pointClearForCircle(target, radius, solids, bounds) &&
+        segmentClearForCircle(goalPoint, target, radius, solids, bounds)) {
+      resolvedTarget = { x: target.x, y: target.y };
+      exact = true;
+    }
+
+    const candidates = raw.slice();
+    if (!candidates.length || dist(candidates.at(-1), resolvedTarget) > 1) candidates.push(resolvedTarget);
+
+    const simplified = [];
+    let anchorPoint = { x: start.x, y: start.y };
+    let index = 0;
+    while (index < candidates.length) {
+      let furthest = -1;
+      for (let j = candidates.length - 1; j >= index; j -= 1) {
+        if (segmentClearForCircle(anchorPoint, candidates[j], radius, solids, bounds)) {
+          furthest = j;
+          break;
+        }
+      }
+      if (furthest < 0) {
+        return { points: [], target: { x: start.x, y: start.y }, exact: false };
+      }
+      simplified.push(candidates[furthest]);
+      anchorPoint = candidates[furthest];
+      index = furthest + 1;
+    }
+
+    return { points: simplified, target: resolvedTarget, exact };
+  }
+
+  function validateStageNavigation(stage, cellSize = 28) {
+    const solids = [...(stage.walls || []), ...(stage.furniture || [])];
+    const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
+
+    function validateRoute(role, spawn, patrol, radius) {
+      if (!spawn || !Array.isArray(patrol) || patrol.length < 2) {
+        return { ok: false, reason: `${role} navigation data missing` };
+      }
+      const points = [spawn, ...patrol, patrol[0]];
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const plan = planCirclePath(points[i], points[i + 1], radius, solids, stageBounds, cellSize);
+        if (!plan.points.length || !plan.exact) {
+          return {
+            ok: false,
+            reason: `${role} route unreachable: ${i} -> ${i + 1}`,
+            from: points[i],
+            to: points[i + 1]
+          };
+        }
+      }
+      return { ok: true };
+    }
+
+    const mom = validateRoute("mom", stage.momSpawn, stage.patrolMom, 19);
+    if (!mom.ok) return mom;
+    if (stage.sisterActive) {
+      const sister = validateRoute("sister", stage.sisterSpawn, stage.patrolSister, 17);
+      if (!sister.ok) return sister;
+    }
+    return { ok: true };
+  }
+
   function orientation(a, b, c) {
     const v = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
     if (Math.abs(v) < 1e-9) return 0;
@@ -139,6 +366,10 @@
     pointInRect,
     circleOverlapsRect,
     moveCircle,
+    pointClearForCircle,
+    segmentClearForCircle,
+    planCirclePath,
+    validateStageNavigation,
     segmentsIntersect,
     segmentHitsRect,
     hasLineOfSight,
