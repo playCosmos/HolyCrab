@@ -45,3 +45,21 @@ test("run rank rewards clean fast play", () => {
   assert.equal(C.rankRun({ caught: 3, seconds: 700 }).rank, "B");
   assert.equal(C.rankRun({ caught: 5, seconds: 900 }).rank, "C");
 });
+
+
+test("path planner routes a watcher around blocking furniture", () => {
+  const bounds = { x: 0, y: 0, w: 300, h: 220 };
+  const solids = [{ x: 120, y: 40, w: 60, h: 140 }];
+  const start = { x: 60, y: 110 };
+  const target = { x: 240, y: 110 };
+  const plan = C.planCirclePath(start, target, 16, solids, bounds, 24);
+
+  assert.equal(plan.exact, true);
+  assert.ok(plan.points.length >= 2);
+  let cursor = start;
+  for (const waypoint of plan.points) {
+    assert.equal(C.segmentClearForCircle(cursor, waypoint, 16, solids, bounds), true);
+    cursor = waypoint;
+  }
+  assert.ok(C.dist(cursor, target) < 1);
+});
