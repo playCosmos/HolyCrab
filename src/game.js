@@ -841,6 +841,7 @@
     let best = 76;
     for (const watcher of watchers) {
       if (watcher.boundTimer > 0) continue;
+      if (!C.hasLineOfSight(player, watcher, solids)) continue;
       const d = C.dist(player, watcher);
       if (d <= best) {
         best = d;
@@ -852,6 +853,10 @@
 
   function useBindingItem() {
     if (gameState !== "playing" || freeze > 0) return;
+    if (player.hidden) {
+      showToast("숨은 상태에서는 포장끈을 사용할 수 없다.", 1.2);
+      return;
+    }
     if (inventory.binding <= 0) {
       showToast("포장끈이 없다.", 1.1);
       return;
@@ -880,6 +885,10 @@
 
   function useCigarette() {
     if (gameState !== "playing" || freeze > 0) return;
+    if (player.hidden) {
+      showToast("숨은 상태에서는 담배를 사용할 수 없다.", 1.2);
+      return;
+    }
     if (inventory.cigarette <= 0) {
       showToast("담배가 없다.", 1.1);
       return;
