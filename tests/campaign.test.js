@@ -234,3 +234,14 @@ test("continuous sight does not repeatedly spike watcher alertness", () => {
   assert.equal(brain.alertness, firstAlert);
   assert.equal(brain.sightings, firstSightings);
 });
+
+
+test("generated stage interaction points stay separated", () => {
+  for (let i = 0; i < 40; i += 1) {
+    const campaign = Campaign.generateCampaign("layout-" + i);
+    for (const stage of campaign.stages) {
+      const result = Campaign.validateStage(stage);
+      assert.equal(result.ok, true, stage.id + ": " + (result.reason || "layout check failed"));
+    }
+  }
+});
