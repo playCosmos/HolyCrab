@@ -173,10 +173,10 @@
       { x: 250, y: 340 }, { x: 720, y: 270 }, { x: 860, y: 650 }, { x: 1260, y: 500 }
     ],
     market: [
-      { x: 390, y: 400 }, { x: 720, y: 400 }, { x: 1080, y: 400 }, { x: 1350, y: 400 }
+      { x: 500, y: 400 }, { x: 830, y: 400 }, { x: 1180, y: 400 }, { x: 660, y: 500 }
     ],
     banchan: [
-      { x: 430, y: 250 }, { x: 820, y: 520 }, { x: 970, y: 220 }, { x: 1320, y: 520 }
+      { x: 270, y: 280 }, { x: 430, y: 600 }, { x: 820, y: 240 }, { x: 1320, y: 520 }
     ]
   };
 
@@ -238,7 +238,7 @@
       ],
       distractions: [
         { id: "home-tv", x: 740, y: 570, label: "TV 소리 내기", radius: 470 },
-        { id: "home-phone", x: 856, y: 92, label: "휴대폰 진동 울리기", radius: 385 },
+        { id: "home-phone", x: 905, y: 92, label: "휴대폰 진동 울리기", radius: 385 },
         { id: "home-microwave", x: 1018, y: 150, label: "전자레인지 알림음 내기", radius: 430 }
       ],
       exit: { x: 730, y: 774, label: "현관으로 나가기" },
@@ -637,6 +637,30 @@
     if (!Array.isArray(stage.items)) return { ok: false, reason: "items missing" };
     if (!Array.isArray(stage.entries) || stage.entries.length !== stage.clues.length + stage.decoys.length) {
       return { ok: false, reason: "evidence entries invalid" };
+    }
+
+    const interactionPoints = [
+      ...stage.clues.map(x => ({ ...x, interactionKind: "clue" })),
+      ...stage.decoys.map(x => ({ ...x, interactionKind: "decoy" })),
+      ...stage.items.map(x => ({ ...x, interactionKind: "item" })),
+      ...(stage.hideSpots || []).map(x => ({ ...x, interactionKind: "hide" })),
+      ...(stage.distractions || []).map(x => ({ ...x, interactionKind: "distraction" })),
+      ...(stage.safe ? [{ ...stage.safe, id: "recipe-safe", interactionKind: "safe" }] : []),
+      ...(stage.exit ? [{ ...stage.exit, id: "stage-exit", interactionKind: "exit" }] : [])
+    ];
+    const minInteractionDistance = 28;
+    for (let i = 0; i < interactionPoints.length; i += 1) {
+      for (let j = i + 1; j < interactionPoints.length; j += 1) {
+        const a = interactionPoints[i];
+        const b = interactionPoints[j];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d < minInteractionDistance) {
+          return {
+            ok: false,
+            reason: `interaction overlap: ${a.id || a.interactionKind} / ${b.id || b.interactionKind}`
+          };
+        }
+      }
     }
     return { ok: true };
   }

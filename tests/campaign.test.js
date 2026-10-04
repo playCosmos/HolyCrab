@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const Campaign = require("../src/stages.js");
 const AI = require("../src/mom-ai.js");
+const C = require("../src/core.js");
 
 test("campaign spans ten days with exactly three home visits", () => {
   const c = Campaign.generateCampaign("holycrab-test-seed");
@@ -209,4 +210,38 @@ test("home sister starts in open living-room floor instead of the pantry edge", 
     home.sisterSpawn.y - (220 + 65)
   );
   assert.ok(distanceToKitchenPassage > 180);
+});
+
+
+test("generated NPC routes remain connected around obstacles", () => {
+  for (let i = 0; i < 40; i += 1) {
+    const campaign = Campaign.generateCampaign("navigation-" + i);
+    for (const stage of campaign.stages) {
+      const result = C.validateStageNavigation(stage, 28);
+      assert.equal(result.ok, true, stage.id + ": " + (result.reason || "route failed"));
+    }
+  }
+});
+
+
+test("continuous sight does not repeatedly spike watcher alertness", () => {
+  const brain = AI.createBrain(.2);
+  AI.rememberSeen(brain, { x: 10, y: 10 });
+  const firstAlert = brain.alertness;
+  const firstSightings = brain.sightings;
+  AI.rememberSeen(brain, { x: 20, y: 10 });
+  AI.rememberSeen(brain, { x: 30, y: 10 });
+  assert.equal(brain.alertness, firstAlert);
+  assert.equal(brain.sightings, firstSightings);
+});
+
+
+test("generated stage interaction points stay separated", () => {
+  for (let i = 0; i < 40; i += 1) {
+    const campaign = Campaign.generateCampaign("layout-" + i);
+    for (const stage of campaign.stages) {
+      const result = Campaign.validateStage(stage);
+      assert.equal(result.ok, true, stage.id + ": " + (result.reason || "layout check failed"));
+    }
+  }
 });

@@ -203,6 +203,12 @@
       color,
       suspicion: 0,
       boundTimer: 0,
+      navPath: [],
+      navIndex: 0,
+      navTarget: null,
+      navResolvedTarget: null,
+      navExact: true,
+      navTimer: 0,
       brain: AI.createBrain(inheritedAlert)
     };
   }
@@ -232,6 +238,10 @@
     stage = campaign.stages[stageIndex];
     const validation = Campaign.validateStage(stage);
     if (!validation.ok) throw new Error(`Invalid stage ${stage.id}: ${validation.reason}`);
+    const navigationValidation = C.validateStageNavigation(stage);
+    if (!navigationValidation.ok) {
+      throw new Error(`Invalid navigation ${stage.id}: ${navigationValidation.reason}`);
+    }
 
     walls = stage.walls.map(x => ({ ...x }));
     furniture = stage.furniture.map(x => ({ ...x }));
@@ -408,6 +418,11 @@
     return list;
   }
 
+  function nearestUsableInteractable(maxDistance = 72) {
+    const visible = getInteractables().filter(obj => C.hasLineOfSight(player, obj, walls));
+    return C.nearestInteractable(player, visible, maxDistance);
+  }
+
   function interactionPrompt(obj) {
     if (!obj) return "";
     if (obj.kind === "safe" && !stageCluesComplete()) {
@@ -431,7 +446,7 @@
       return;
     }
 
-    const obj = C.nearestInteractable(player, getInteractables(), 72);
+    const obj = nearestUsableInteractable(72);
     if (!obj) return;
 
     if (obj.kind === "clue") {
@@ -465,6 +480,11 @@
     }
 
     if (obj.kind === "hide") {
+      const seenBy = watchers.find(watcher => watcher.boundTimer <= 0 && watcherCanSeePlayer(watcher));
+      if (seenBy) {
+        showToast(`${seenBy.name}가 보고 있는 앞에서는 숨을 수 없다.`, 1.5);
+        return;
+      }
       player.hidden = true;
       player.hideSpot = obj.id;
       player.x = obj.x;
@@ -557,6 +577,7 @@
       w.target = null;
       w.suspicion = 0;
       w.boundTimer = 0;
+      clearWatcherNavigation(w);
       const extra = Math.min(.72, .16 + stage.day * .045 + caught * .035);
       w.brain = AI.createBrain(extra);
     }
@@ -615,34 +636,91 @@
     }
   }
 
+  function clearWatcherNavigation(watcher) {
+    watcher.navPath = [];
+    watcher.navIndex = 0;
+    watcher.navTarget = null;
+    watcher.navResolvedTarget = null;
+    watcher.navExact = true;
+    watcher.navTimer = 0;
+  }
+
   function moveWatcherToward(watcher, target, speed, dt) {
-    if (!target) return true;
-    const dx = target.x - watcher.x;
-    const dy = target.y - watcher.y;
-    const d = Math.hypot(dx, dy);
-    if (d < 10) {
+    if (!target) {
+      clearWatcherNavigation(watcher);
       watcher.velocity.x = 0;
       watcher.velocity.y = 0;
       return true;
     }
 
+    if (C.dist(watcher, target) < 10) {
+      clearWatcherNavigation(watcher);
+      watcher.velocity.x = 0;
+      watcher.velocity.y = 0;
+      return true;
+    }
+
+    watcher.navTimer = Math.max(0, (watcher.navTimer || 0) - dt);
+    const targetMoved = !watcher.navTarget || C.dist(watcher.navTarget, target) > 34;
+    const pathExhausted = !Array.isArray(watcher.navPath) || watcher.navIndex >= watcher.navPath.length;
+
+    if (targetMoved || pathExhausted || watcher.navTimer <= 0) {
+      const plan = C.planCirclePath(watcher, target, watcher.r, solids, bounds, 28);
+      watcher.navPath = plan.points;
+      watcher.navIndex = 0;
+      watcher.navTarget = { x: target.x, y: target.y };
+      watcher.navResolvedTarget = plan.target;
+      watcher.navExact = plan.exact;
+      watcher.navTimer = watcher.brain.state === AI.STATES.CHASE ? .18 : .62;
+
+      if (!watcher.navPath.length) {
+        watcher.velocity.x = 0;
+        watcher.velocity.y = 0;
+        return false;
+      }
+    }
+
+    while (watcher.navIndex < watcher.navPath.length) {
+      const waypoint = watcher.navPath[watcher.navIndex];
+      if (C.dist(watcher, waypoint) > Math.max(10, speed * dt * 1.35)) break;
+      watcher.navIndex += 1;
+    }
+
+    if (watcher.navIndex >= watcher.navPath.length) {
+      const resolved = watcher.navResolvedTarget || target;
+      const arrived = C.dist(watcher, resolved) < 14;
+      if (arrived) {
+        watcher.velocity.x = 0;
+        watcher.velocity.y = 0;
+        if (!watcher.navExact) clearWatcherNavigation(watcher);
+      } else {
+        watcher.navTimer = 0;
+      }
+      return arrived;
+    }
+
+    const waypoint = watcher.navPath[watcher.navIndex];
+    const dx = waypoint.x - watcher.x;
+    const dy = waypoint.y - watcher.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 1) {
+      watcher.navIndex += 1;
+      return false;
+    }
+
     watcher.angle = Math.atan2(dy, dx);
     const beforeX = watcher.x;
     const beforeY = watcher.y;
-    let next = C.moveCircle(watcher, dx / d * speed * dt, dy / d * speed * dt, watcher.r, solids, bounds);
-
-    if (Math.hypot(next.x - watcher.x, next.y - watcher.y) < .15) {
-      const sideA = C.moveCircle(watcher, -dy / d * speed * dt, dx / d * speed * dt, watcher.r, solids, bounds);
-      const sideB = C.moveCircle(watcher, dy / d * speed * dt, -dx / d * speed * dt, watcher.r, solids, bounds);
-      const da = Math.hypot(target.x - sideA.x, target.y - sideA.y);
-      const db = Math.hypot(target.x - sideB.x, target.y - sideB.y);
-      next = da <= db ? sideA : sideB;
-    }
-
+    const next = C.moveCircle(watcher, dx / d * speed * dt, dy / d * speed * dt, watcher.r, solids, bounds);
     watcher.x = next.x;
     watcher.y = next.y;
     watcher.velocity.x = (watcher.x - beforeX) / Math.max(dt, .001);
     watcher.velocity.y = (watcher.y - beforeY) / Math.max(dt, .001);
+
+    if (Math.hypot(watcher.x - beforeX, watcher.y - beforeY) < .08) {
+      watcher.navTimer = 0;
+    }
+
     return false;
   }
 
@@ -702,7 +780,8 @@
         }
       }
       moveWatcherToward(watcher, watcher.target, watcher.config.chaseSpeed, dt);
-      AI.coolBrain(brain, dt);
+      if (sees) brain.scanPhase += dt;
+      else AI.coolBrain(brain, dt);
       return false;
     }
 
@@ -763,6 +842,7 @@
     let best = 76;
     for (const watcher of watchers) {
       if (watcher.boundTimer > 0) continue;
+      if (!C.hasLineOfSight(player, watcher, solids)) continue;
       const d = C.dist(player, watcher);
       if (d <= best) {
         best = d;
@@ -774,6 +854,10 @@
 
   function useBindingItem() {
     if (gameState !== "playing" || freeze > 0) return;
+    if (player.hidden) {
+      showToast("숨은 상태에서는 포장끈을 사용할 수 없다.", 1.2);
+      return;
+    }
     if (inventory.binding <= 0) {
       showToast("포장끈이 없다.", 1.1);
       return;
@@ -802,6 +886,10 @@
 
   function useCigarette() {
     if (gameState !== "playing" || freeze > 0) return;
+    if (player.hidden) {
+      showToast("숨은 상태에서는 담배를 사용할 수 없다.", 1.2);
+      return;
+    }
     if (inventory.cigarette <= 0) {
       showToast("담배가 없다.", 1.1);
       return;
@@ -875,7 +963,7 @@
     }
     let text = "";
     if (player.hidden) text = "E · 숨는 곳에서 나오기";
-    else text = interactionPrompt(C.nearestInteractable(player, getInteractables(), 72));
+    else text = interactionPrompt(nearestUsableInteractable(72));
     if (text) {
       ui.prompt.textContent = text;
       ui.prompt.classList.add("show");

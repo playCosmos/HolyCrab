@@ -70,10 +70,13 @@
   }
 
   function rememberSeen(brain, point) {
+    const reacquired = brain.state !== STATES.CHASE;
     brain.lastSeen = { x: point.x, y: point.y };
     brain.confidence = 1;
-    brain.alertness = clamp(brain.alertness + .16, 0, 1);
-    brain.sightings += 1;
+    if (reacquired) {
+      brain.alertness = clamp(brain.alertness + .16, 0, 1);
+      brain.sightings += 1;
+    }
     brain.state = STATES.CHASE;
     brain.stateTimer = 1.55 + brain.alertness * .9;
   }
@@ -144,7 +147,7 @@
 
   function stateLabel(state) {
     switch (state) {
-      case STATES.CHASE: return "엄마 · 발견!";
+      case STATES.CHASE: return "엄마 · 추적 중";
       case STATES.SEARCH: return "엄마 · 수색 중";
       case STATES.INVESTIGATE: return "엄마 · 소리 확인";
       case STATES.RETURN: return "엄마 · 돌아가는 중";
