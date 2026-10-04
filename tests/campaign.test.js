@@ -222,3 +222,15 @@ test("generated NPC routes remain connected around obstacles", () => {
     }
   }
 });
+
+
+test("continuous sight does not repeatedly spike watcher alertness", () => {
+  const brain = AI.createBrain(.2);
+  AI.rememberSeen(brain, { x: 10, y: 10 });
+  const firstAlert = brain.alertness;
+  const firstSightings = brain.sightings;
+  AI.rememberSeen(brain, { x: 20, y: 10 });
+  AI.rememberSeen(brain, { x: 30, y: 10 });
+  assert.equal(brain.alertness, firstAlert);
+  assert.equal(brain.sightings, firstSightings);
+});
