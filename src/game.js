@@ -418,6 +418,11 @@
     return list;
   }
 
+  function nearestUsableInteractable(maxDistance = 72) {
+    const visible = getInteractables().filter(obj => C.hasLineOfSight(player, obj, walls));
+    return C.nearestInteractable(player, visible, maxDistance);
+  }
+
   function interactionPrompt(obj) {
     if (!obj) return "";
     if (obj.kind === "safe" && !stageCluesComplete()) {
@@ -441,7 +446,7 @@
       return;
     }
 
-    const obj = C.nearestInteractable(player, getInteractables(), 72);
+    const obj = nearestUsableInteractable(72);
     if (!obj) return;
 
     if (obj.kind === "clue") {
@@ -943,7 +948,7 @@
     }
     let text = "";
     if (player.hidden) text = "E · 숨는 곳에서 나오기";
-    else text = interactionPrompt(C.nearestInteractable(player, getInteractables(), 72));
+    else text = interactionPrompt(nearestUsableInteractable(72));
     if (text) {
       ui.prompt.textContent = text;
       ui.prompt.classList.add("show");
