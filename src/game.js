@@ -669,7 +669,7 @@
       emitNoise(obj, obj.radius || 450, true, true);
       showToast(
         stage.sisterActive
-          ? "소리를 냈다. 엄마와 언니가 각자 들은 위치를 확인한다."
+          ? "소리를 냈다. 가까운 추적자가 더 크게 반응해 둘의 동선을 갈라놓을 수 있다."
           : "소리를 냈다. 엄마가 들은 위치를 확인한다.",
         1.8
       );
@@ -1154,8 +1154,22 @@
       return;
     }
     let text = "";
-    if (player.hidden) text = "E · 숨는 곳에서 나오기";
-    else text = interactionPrompt(nearestUsableInteractable(72));
+    if (player.actionLock > 0) {
+      text = "확인 중… 잠깐 움직일 수 없다";
+    } else if (player.hidden) {
+      const searcher = watchers
+        .filter(watcher =>
+          watcher.boundTimer <= 0 &&
+          [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
+        )
+        .map(watcher => ({ watcher, distance: C.dist(watcher, player) }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      text = searcher && searcher.distance < 110
+        ? `⚠ ${searcher.watcher.name}가 숨은 곳을 수색 중 · E · 나오기`
+        : "E · 숨는 곳에서 나오기";
+    } else {
+      text = interactionPrompt(nearestUsableInteractable(72));
+    }
     if (text) {
       ui.prompt.textContent = text;
       ui.prompt.classList.add("show");
