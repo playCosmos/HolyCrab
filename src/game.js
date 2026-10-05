@@ -1160,9 +1160,8 @@
     ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
     if (!stageCluesComplete()) {
       ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
-      ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니를 피하며 오늘의 핵심 단서를 찾자."
-        : "엄마를 피하며 오늘의 핵심 단서를 찾자.";
+      const pursuers = stage.sisterActive ? "엄마와 언니" : "엄마";
+      ui.submission.textContent = `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`;
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
