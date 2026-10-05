@@ -388,7 +388,7 @@
     decoyDefs = (stage.decoys || []).map(x => ({ ...x }));
     itemDefs = (stage.items || []).map(x => ({ ...x, kind: "item" }));
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
-    distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0 }));
+    distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0, used: false }));
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
 
@@ -582,7 +582,7 @@
     }
     list.push(...hideSpots);
     for (const d of distractions) {
-      if (d.cooldown <= 0) list.push(d);
+      if (!d.used && d.cooldown <= 0) list.push(d);
     }
     if (safe && !hasRecipe) list.push(safe);
     list.push(exitDoor);
@@ -681,12 +681,13 @@
 
     if (obj.kind === "distraction") {
       player.actionLock = .35;
-      obj.cooldown = 12;
+      obj.used = true;
+      obj.cooldown = 0;
       emitNoise(obj, obj.radius || 450, true, true);
       showToast(
         stage.sisterActive
-          ? "소리를 냈다. 가까운 추적자가 더 크게 반응해 둘의 동선을 갈라놓을 수 있다."
-          : "소리를 냈다. 엄마가 들은 위치를 확인한다.",
+          ? "소리를 냈다. 가까운 추적자가 더 크게 반응한다. 같은 장치에는 오늘 다시 속지 않는다."
+          : "소리를 냈다. 엄마가 확인하러 간다. 같은 장치에는 오늘 다시 속지 않는다.",
         1.8
       );
       return;
@@ -1344,7 +1345,11 @@
     }
 
     for (const d of distractions) {
-      ctx.fillStyle = d.cooldown > 0 ? "rgba(255,255,255,.13)" : "rgba(130,200,214,.62)";
+      ctx.fillStyle = d.used
+        ? "rgba(255,255,255,.10)"
+        : d.cooldown > 0
+          ? "rgba(255,255,255,.13)"
+          : "rgba(130,200,214,.62)";
       ctx.beginPath(); ctx.arc(d.x, d.y, 7, 0, Math.PI * 2); ctx.fill();
     }
 
