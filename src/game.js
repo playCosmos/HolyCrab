@@ -12,6 +12,7 @@
   const ctx = canvas.getContext("2d");
   const W = 1440;
   const H = 810;
+  const ITEM_CAPACITY = Object.freeze({ binding: 2, cigarette: 2 });
   const bounds = { x: 14, y: 14, w: W - 28, h: H - 28 };
   canvas.width = W;
   canvas.height = H;
@@ -234,7 +235,10 @@
 
     collected = Object.assign(Object.create(null), saved.collected);
     pickedItems = Object.assign(Object.create(null), saved.pickedItems);
-    inventory = { ...saved.inventory };
+    inventory = {
+      binding: Math.min(ITEM_CAPACITY.binding, saved.inventory.binding || 0),
+      cigarette: Math.min(ITEM_CAPACITY.cigarette, saved.inventory.cigarette || 0)
+    };
     hasRecipe = saved.hasRecipe;
     caught = saved.caught;
     elapsed = saved.elapsed;
@@ -567,7 +571,14 @@
       if (!collected[d.id]) list.push({ ...d, kind: "decoy", label: `${d.title} 살펴보기` });
     }
     for (const item of itemDefs) {
-      if (!pickedItems[item.id]) list.push({ ...item, kind: "item", label: `${item.title} 줍기` });
+      if (!pickedItems[item.id]) {
+        const full = (inventory[item.type] || 0) >= (ITEM_CAPACITY[item.type] || 2);
+        list.push({
+          ...item,
+          kind: "item",
+          label: full ? `${item.title} · 소지 한도` : `${item.title} 줍기`
+        });
+      }
     }
     list.push(...hideSpots);
     for (const d of distractions) {
@@ -631,6 +642,11 @@
     }
 
     if (obj.kind === "item") {
+      const capacity = ITEM_CAPACITY[obj.type] || 2;
+      if ((inventory[obj.type] || 0) >= capacity) {
+        showToast(`${obj.title}은(는) ${capacity}개까지 들 수 있다. 하나를 사용한 뒤 다시 주울 수 있다.`, 1.8);
+        return;
+      }
       player.actionLock = .25;
       pickedItems[obj.id] = true;
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
@@ -1102,8 +1118,8 @@
   }
 
   function updateInventoryUI() {
-    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}`;
-    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}`;
+    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`;
+    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`;
     if (ui.boostStatus) {
       ui.boostStatus.textContent = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
       ui.boostStatus.classList.toggle("hidden", boostTimer <= 0);
