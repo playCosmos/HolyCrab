@@ -27,11 +27,13 @@ test("day five intro brings in sister", () => {
     intro: "집으로 다시 왔다.",
     objective: "부엌 조사",
     clues: [{}, {}],
-    sisterActive: true
+    sisterActive: true,
+    layoutName: "포장 작업 중"
   });
   assert.ok(scenes.some(s => s.speaker === "언니" && s.portrait === "sister"));
   assert.ok(scenes.some(s => /집순이 언니|엄마와 언니/.test(s.text)));
   assert.ok(scenes.at(-1).summary.some(([k]) => k === "아이템"));
+  assert.ok(scenes.at(-1).summary.some(([k,v]) => k === "현장 상태" && v === "포장 작업 중"));
 });
 
 test("caught scene uses the pursuer portrait and preserves progress", () => {
