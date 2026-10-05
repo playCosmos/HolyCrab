@@ -36,8 +36,11 @@
           <div class="start-kicker">간장게장 레시피 잠입 작전</div>
           <h1>엄마의 간장게장 레시피를 훔쳐라</h1>
           <p>게임을 시작하면 짧은 이야기 형식의 안내 뒤 첫날 작전이 시작된다.</p>
-          <button id="start-btn" class="primary start-btn" type="button">게임 시작</button>
-          <div class="start-hint">Enter / Space</div>
+          <div class="start-actions">
+            <button id="start-btn" class="primary start-btn" type="button">새 게임</button>
+            <button id="continue-btn" class="start-btn hidden" type="button">이어하기</button>
+          </div>
+          <div class="start-hint">Enter / Space · 새 게임</div>
         </div>
       </section>
 
@@ -64,6 +67,18 @@
             <div id="vn-text" class="vn-text"></div>
             <div id="vn-meta" class="vn-meta"></div>
             <button id="vn-next" class="vn-next" type="button">다음 ▶</button>
+          </div>
+        </section>
+
+        <section id="pause" class="overlay hidden" aria-label="일시정지">
+          <div class="panel pause-panel">
+            <div class="day-kicker">PAUSED</div>
+            <h2>일시정지</h2>
+            <p id="pause-reason">게임이 일시정지되었습니다.</p>
+            <div class="actions">
+              <button id="resume-btn" class="primary" type="button">계속하기</button>
+              <button id="pause-title-btn" type="button">시작 화면으로</button>
+            </div>
           </div>
         </section>
 
@@ -107,6 +122,7 @@
   <script src="./src/mom-ai.js"></script>
   <script src="./src/stages.js"></script>
   <script src="./src/story.js"></script>
+  <script src="./src/session.js"></script>
   <script src="./src/game.js"></script>
 </body>
 </html>
