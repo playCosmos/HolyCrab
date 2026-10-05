@@ -39,11 +39,11 @@ test("nearest interactable picks the closest enabled object", () => {
   assert.equal(C.nearestInteractable(p, objects, 30).id, "near");
 });
 
-test("run rank rewards clean fast play", () => {
-  assert.equal(C.rankRun({ caught: 0, seconds: 180 }).rank, "S");
-  assert.equal(C.rankRun({ caught: 1, seconds: 300 }).rank, "A");
-  assert.equal(C.rankRun({ caught: 3, seconds: 700 }).rank, "B");
-  assert.equal(C.rankRun({ caught: 5, seconds: 900 }).rank, "C");
+test("campaign rank uses the same thresholds as the runtime", () => {
+  assert.equal(C.rankCampaign({ caught: 0, seconds: 900 }).rank, "S");
+  assert.equal(C.rankCampaign({ caught: 1, seconds: 1300 }).rank, "A");
+  assert.equal(C.rankCampaign({ caught: 4, seconds: 2000 }).rank, "B");
+  assert.equal(C.rankCampaign({ caught: 6, seconds: 2000 }).rank, "C");
 });
 
 
@@ -62,4 +62,20 @@ test("path planner routes a watcher around blocking furniture", () => {
     cursor = waypoint;
   }
   assert.ok(C.dist(cursor, target) < 1);
+});
+
+
+test("vision polygon stops at blocking walls", () => {
+  const observer = { x: 20, y: 60, angle: 0 };
+  const wall = { x: 70, y: 20, w: 20, h: 80 };
+  const centerDistance = C.raycastDistance(observer, 0, 150, [wall]);
+  assert.equal(centerDistance, 50);
+
+  const openDistance = C.raycastDistance(observer, -Math.PI / 2, 150, [wall]);
+  assert.equal(openDistance, 150);
+
+  const polygon = C.visionPolygon(observer, 150, Math.PI / 2, [wall], 12);
+  assert.ok(polygon.length >= 14);
+  const centerPoint = polygon[Math.floor(polygon.length / 2)];
+  assert.ok(centerPoint.x <= 71);
 });

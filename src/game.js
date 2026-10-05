@@ -5,7 +5,8 @@
   const Campaign = window.HolyCrabStages;
   const AI = window.HolyCrabMomAI;
   const Story = window.HolyCrabStory;
-  if (!C || !Campaign || !AI || !Story) throw new Error("HolyCrab modules failed to load.");
+  const Session = window.HolyCrabSession;
+  if (!C || !Campaign || !AI || !Story || !Session) throw new Error("HolyCrab modules failed to load.");
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -18,6 +19,7 @@
   const ui = {
     startScreen: document.getElementById("start-screen"),
     startButton: document.getElementById("start-btn"),
+    continueButton: document.getElementById("continue-btn"),
     vnScene: document.getElementById("vn-scene"),
     vnCharacter: document.getElementById("vn-character"),
     vnChapter: document.getElementById("vn-chapter"),
@@ -41,6 +43,10 @@
     toast: document.getElementById("toast"),
     journal: document.getElementById("journal"),
     journalBody: document.getElementById("journal-body"),
+    pause: document.getElementById("pause"),
+    pauseReason: document.getElementById("pause-reason"),
+    resume: document.getElementById("resume-btn"),
+    pauseTitle: document.getElementById("pause-title-btn"),
     result: document.getElementById("result"),
     resultTitle: document.getElementById("result-title"),
     resultText: document.getElementById("result-text"),
@@ -58,7 +64,8 @@
     velocity: { x: 0, y: 0 }
   };
 
-  let campaign = Campaign.generateCampaign(Date.now());
+  let campaignSeedInput = Date.now();
+  let campaign = Campaign.generateCampaign(campaignSeedInput);
   let stageIndex = 0;
   let stage = campaign.stages[0];
   let walls = [];
@@ -75,6 +82,8 @@
   let watchers = [];
 
   let gameState = "start";
+  let pausedFromState = null;
+  let runCompleted = false;
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
@@ -87,6 +96,7 @@
   let freeze = 0;
   let toastTimer = 0;
   let footstepTimer = 0;
+  let autosaveTimer = 8;
   let noiseRings = [];
   let stageCaughtStart = 0;
   let vnLines = [];
@@ -124,6 +134,125 @@
     click() { this.tone(360,.05,.018,"triangle"); }
   }
   const audio = new AudioEngine();
+
+  function makeSessionSnapshot() {
+    return Session.makeSnapshot({
+      seedInput: campaignSeedInput,
+      stageIndex,
+      collected,
+      pickedItems,
+      inventory,
+      hasRecipe,
+      caught,
+      elapsed,
+      stageCaughtStart
+    });
+  }
+
+  function readSavedSession() {
+    try {
+      return Session.decode(window.localStorage.getItem(Session.STORAGE_KEY), 10);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function refreshContinueButton() {
+    const saved = readSavedSession();
+    ui.continueButton.classList.toggle("hidden", !saved);
+    if (!saved) {
+      try { window.localStorage.removeItem(Session.STORAGE_KEY); } catch (_) {}
+    }
+    return saved;
+  }
+
+  function saveSession() {
+    if (runCompleted || gameState === "start" || gameState === "result") return false;
+    const encoded = Session.encode(makeSessionSnapshot());
+    if (!encoded) return false;
+    try {
+      window.localStorage.setItem(Session.STORAGE_KEY, encoded);
+      ui.continueButton.classList.remove("hidden");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearSavedSession() {
+    try { window.localStorage.removeItem(Session.STORAGE_KEY); } catch (_) {}
+    ui.continueButton.classList.add("hidden");
+  }
+
+  function pauseGame(reason = "게임이 일시정지되었습니다.") {
+    if (gameState !== "playing") return false;
+    pausedFromState = gameState;
+    gameState = "paused";
+    for (const key of Object.keys(keys)) delete keys[key];
+    ui.pauseReason.textContent = reason;
+    ui.pause.classList.remove("hidden");
+    ui.journal.classList.add("hidden");
+    saveSession();
+    return true;
+  }
+
+  function resumeGame() {
+    if (gameState !== "paused") return false;
+    gameState = pausedFromState || "playing";
+    pausedFromState = null;
+    lastFrame = performance.now();
+    ui.pause.classList.add("hidden");
+    return true;
+  }
+
+  function returnToTitle() {
+    if (gameState === "paused") saveSession();
+    pausedFromState = null;
+    gameState = "start";
+    ui.pause.classList.add("hidden");
+    ui.vnScene.classList.add("hidden");
+    ui.result.classList.add("hidden");
+    ui.startScreen.classList.remove("hidden");
+    refreshContinueButton();
+  }
+
+  function resumeSavedCampaign() {
+    const saved = readSavedSession();
+    if (!saved) {
+      refreshContinueButton();
+      return false;
+    }
+
+    runCompleted = false;
+    campaignSeedInput = saved.seedInput;
+    campaign = Campaign.generateCampaign(campaignSeedInput);
+    if (saved.stageIndex >= campaign.stages.length) {
+      clearSavedSession();
+      return false;
+    }
+
+    collected = Object.assign(Object.create(null), saved.collected);
+    pickedItems = Object.assign(Object.create(null), saved.pickedItems);
+    inventory = { ...saved.inventory };
+    hasRecipe = saved.hasRecipe;
+    caught = saved.caught;
+    elapsed = saved.elapsed;
+    ui.startScreen.classList.add("hidden");
+    ui.pause.classList.add("hidden");
+    ui.vnScene.classList.add("hidden");
+    ui.result.classList.add("hidden");
+
+    loadStage(saved.stageIndex, false);
+    stageCaughtStart = saved.stageCaughtStart;
+    gameState = "playing";
+    updateInventoryUI();
+    renderJournal();
+    updateMission();
+    updateSuspicionUI();
+    showToast(`DAY ${stage.day} 저장 지점에서 재개했다.`, 2.0);
+    saveSession();
+    return true;
+  }
 
   function renderVNLine() {
     const line = vnLines[vnIndex];
@@ -213,13 +342,6 @@
     };
   }
 
-  function rankCampaign() {
-    if (caught === 0 && elapsed < 1200) return { rank: "S", label: "게장 대도" };
-    if (caught <= 2 && elapsed < 1650) return { rank: "A", label: "시장 골목의 집게발" };
-    if (caught <= 5) return { rank: "B", label: "끈질긴 레시피 추적자" };
-    return { rank: "C", label: "엄마가 처음부터 다 알고 있었음" };
-  }
-
   function stageClueCount() {
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
@@ -293,6 +415,8 @@
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
+        autosaveTimer = 8;
+        saveSession();
         showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
       });
     } else {
@@ -308,7 +432,11 @@
   }
 
   function startCampaign() {
-    campaign = Campaign.generateCampaign(Date.now());
+    clearSavedSession();
+    pausedFromState = null;
+    runCompleted = false;
+    campaignSeedInput = Date.now();
+    campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
     pickedItems = Object.create(null);
     inventory = { binding: 0, cigarette: 0 };
@@ -318,6 +446,9 @@
     hasRecipe = false;
     caught = 0;
     elapsed = 0;
+    stageCaughtStart = 0;
+    autosaveTimer = 8;
+    ui.pause.classList.add("hidden");
     ui.result.classList.add("hidden");
     loadStage(0, false);
     updateInventoryUI();
@@ -326,6 +457,7 @@
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
+        saveSession();
         showToast("DAY 1 · 첫 작전을 시작한다.", 2.2);
       });
     });
@@ -442,6 +574,7 @@
     if (player.hidden) {
       player.hidden = false;
       player.hideSpot = null;
+      saveSession();
       showToast("숨는 곳에서 나왔다.", 1.1);
       return;
     }
@@ -453,6 +586,7 @@
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
+      saveSession();
       showToast(`핵심 기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
       return;
     }
@@ -461,6 +595,7 @@
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
+      saveSession();
       showToast(`쓸모없는 기록 · ${obj.title}: ${obj.text}`, 3.0);
       return;
     }
@@ -476,6 +611,7 @@
         : "2번 키로 사용하면 잠시 빨라진다. 피울 때 기침 소리가 난다.";
       showToast(`${obj.title} 획득 · ${detail}`, 2.8);
       updateInventoryUI();
+      saveSession();
       return;
     }
 
@@ -491,6 +627,7 @@
       player.y = obj.y;
       player.velocity.x = 0;
       player.velocity.y = 0;
+      saveSession();
       showToast("숨었다. 마지막으로 본 위치를 수색해도 여기서는 바로 보이지 않는다.", 1.8);
       return;
     }
@@ -513,6 +650,7 @@
       } else {
         hasRecipe = true;
         audio.success();
+        saveSession();
         showToast("원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.", 3);
       }
       return;
@@ -536,7 +674,9 @@
   }
 
   function finishRun() {
-    const rank = rankCampaign();
+    const rank = C.rankCampaign({ caught, seconds: elapsed });
+    runCompleted = true;
+    clearSavedSession();
     ui.resultRank.textContent = `${rank.rank} · ${rank.label}`;
     ui.resultTime.textContent = C.formatTime(elapsed);
     ui.resultCaught.textContent = `${caught}회`;
@@ -583,9 +723,11 @@
     }
 
     audio.alert();
+    saveSession();
     showVN(Story.caught(watcher.role, caught), () => {
       freeze = 0;
       gameState = "playing";
+      saveSession();
       showToast("작전 재개 · 이미 확보한 기록은 유지된다.", 1.8);
     }, { tone: "caught" });
   }
@@ -882,6 +1024,7 @@
     audio.click();
     showToast(`${watcher.name}를 포장끈으로 묶어뒀다. 약 8초 동안 움직이지 못한다.`, 2.2);
     updateInventoryUI();
+    saveSession();
   }
 
   function useCigarette() {
@@ -907,6 +1050,7 @@
     audio.click();
     showToast("담배 사용 · 7초 동안 이동 속도 +45%. 기침 소리에 주의.", 2.4);
     updateInventoryUI();
+    saveSession();
   }
 
   function updateInventoryUI() {
@@ -996,6 +1140,11 @@
     if (gameState !== "playing") return;
 
     elapsed += dt;
+    autosaveTimer -= dt;
+    if (autosaveTimer <= 0) {
+      autosaveTimer = 8;
+      saveSession();
+    }
     if (freeze > 0) {
       freeze -= dt;
       updateMission();
@@ -1173,17 +1322,19 @@
   function drawWatcherVision(watcher) {
     const range = AI.effectiveVisionRange(watcher.config.visionRange, player, watcher.brain.alertness);
     const fov = AI.effectiveFov(watcher.config.fov, watcher.brain.alertness, watcher.brain.state);
-    ctx.save();
-    ctx.translate(watcher.x, watcher.y);
-    ctx.rotate(watcher.angle);
-    const g = ctx.createRadialGradient(0, 0, 10, 0, 0, range);
+    const polygon = C.visionPolygon(watcher, range, fov, blockers, 44);
+    if (polygon.length < 3) return;
+
+    const g = ctx.createRadialGradient(watcher.x, watcher.y, 10, watcher.x, watcher.y, range);
     const hot = watcher.suspicion > .42 || watcher.brain.state === AI.STATES.CHASE;
     g.addColorStop(0, hot ? "rgba(244,112,91,.23)" : watcher.role === "sister" ? "rgba(173,151,230,.15)" : "rgba(247,205,112,.16)");
     g.addColorStop(1, "rgba(247,205,112,0)");
+
+    ctx.save();
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, range, -fov / 2, fov / 2);
+    ctx.moveTo(polygon[0].x, polygon[0].y);
+    for (let i = 1; i < polygon.length; i += 1) ctx.lineTo(polygon[i].x, polygon[i].y);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -1312,9 +1463,14 @@
   }
 
   window.addEventListener("keydown", e => {
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space"].includes(e.code)) e.preventDefault();
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space","Escape"].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
     if (e.repeat) return;
+    if (e.code === "Escape") {
+      if (gameState === "playing") pauseGame();
+      else if (gameState === "paused") resumeGame();
+      return;
+    }
     if (gameState === "start" && ["Space", "Enter"].includes(e.code)) {
       beginFromStartScreen();
       return;
@@ -1332,12 +1488,38 @@
   window.addEventListener("keyup", e => { keys[e.code] = false; });
   window.addEventListener("blur", () => Object.keys(keys).forEach(k => delete keys[k]));
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && gameState === "playing") {
+      pauseGame("창이 비활성화되어 자동으로 일시정지되었습니다.");
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (gameState !== "start" && gameState !== "result") saveSession();
+  });
+
   ui.startButton.addEventListener("click", event => {
     event.stopPropagation();
     beginFromStartScreen();
   });
 
-    ui.vnNext.addEventListener("click", event => {
+  ui.continueButton.addEventListener("click", event => {
+    event.stopPropagation();
+    audio.ensure();
+    resumeSavedCampaign();
+  });
+
+  ui.resume.addEventListener("click", event => {
+    event.stopPropagation();
+    resumeGame();
+  });
+
+  ui.pauseTitle.addEventListener("click", event => {
+    event.stopPropagation();
+    returnToTitle();
+  });
+
+  ui.vnNext.addEventListener("click", event => {
     event.stopPropagation();
     nextVN();
   });
@@ -1354,8 +1536,10 @@
   });
 
   ui.vnScene.classList.add("hidden");
+  ui.pause.classList.add("hidden");
   renderJournal();
   updateInventoryUI();
+  refreshContinueButton();
   requestAnimationFrame(frame);
 
 })();
