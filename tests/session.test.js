@@ -69,3 +69,26 @@ test("session normalization discards invalid flag and inventory values", () => {
   assert.equal(snapshot.hasRecipe, false);
   assert.equal(snapshot.stageCaughtStart, 2);
 });
+
+
+test("older v1 saves without diversion state remain compatible", () => {
+  const legacy = JSON.stringify({
+    version: 1,
+    savedAt: 1234,
+    seedInput: "legacy-save",
+    stageIndex: 2,
+    collected: { clue: true },
+    pickedItems: { item: true },
+    inventory: { binding: 1, cigarette: 2 },
+    hasRecipe: false,
+    caught: 1,
+    elapsed: 245,
+    stageCaughtStart: 1
+  });
+
+  const restored = Session.decode(legacy, 10);
+  assert.ok(restored);
+  assert.deepEqual({ ...restored.usedDistractions }, {});
+  assert.equal(restored.stageIndex, 2);
+  assert.deepEqual(restored.inventory, { binding: 1, cigarette: 2 });
+});
