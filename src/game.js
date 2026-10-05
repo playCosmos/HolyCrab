@@ -5,7 +5,8 @@
   const Campaign = window.HolyCrabStages;
   const AI = window.HolyCrabMomAI;
   const Story = window.HolyCrabStory;
-  if (!C || !Campaign || !AI || !Story) throw new Error("HolyCrab modules failed to load.");
+  const Session = window.HolyCrabSession;
+  if (!C || !Campaign || !AI || !Story || !Session) throw new Error("HolyCrab modules failed to load.");
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -18,6 +19,7 @@
   const ui = {
     startScreen: document.getElementById("start-screen"),
     startButton: document.getElementById("start-btn"),
+    continueButton: document.getElementById("continue-btn"),
     vnScene: document.getElementById("vn-scene"),
     vnCharacter: document.getElementById("vn-character"),
     vnChapter: document.getElementById("vn-chapter"),
@@ -41,6 +43,10 @@
     toast: document.getElementById("toast"),
     journal: document.getElementById("journal"),
     journalBody: document.getElementById("journal-body"),
+    pause: document.getElementById("pause"),
+    pauseReason: document.getElementById("pause-reason"),
+    resume: document.getElementById("resume-btn"),
+    pauseTitle: document.getElementById("pause-title-btn"),
     result: document.getElementById("result"),
     resultTitle: document.getElementById("result-title"),
     resultText: document.getElementById("result-text"),
@@ -58,7 +64,8 @@
     velocity: { x: 0, y: 0 }
   };
 
-  let campaign = Campaign.generateCampaign(Date.now());
+  let campaignSeedInput = Date.now();
+  let campaign = Campaign.generateCampaign(campaignSeedInput);
   let stageIndex = 0;
   let stage = campaign.stages[0];
   let walls = [];
@@ -75,6 +82,7 @@
   let watchers = [];
 
   let gameState = "start";
+  let pausedFromState = null;
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
@@ -211,13 +219,6 @@
       navTimer: 0,
       brain: AI.createBrain(inheritedAlert)
     };
-  }
-
-  function rankCampaign() {
-    if (caught === 0 && elapsed < 1200) return { rank: "S", label: "게장 대도" };
-    if (caught <= 2 && elapsed < 1650) return { rank: "A", label: "시장 골목의 집게발" };
-    if (caught <= 5) return { rank: "B", label: "끈질긴 레시피 추적자" };
-    return { rank: "C", label: "엄마가 처음부터 다 알고 있었음" };
   }
 
   function stageClueCount() {
