@@ -696,6 +696,7 @@
     stage.items = makeItems("home", day, rng, itemType);
     stage.sisterActive = true;
     stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
+    stage.finalEscapeNoise = 360;
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
     stage.sisterAI = { visionRange: 266, fov: 1.42, patrolSpeed: 108, investigateSpeed: 136, chaseSpeed: 172, hearing: 1.3 };
     stage.patrolSister = clone(HOME_PATROL).reverse();
