@@ -1317,17 +1317,19 @@
   function drawWatcherVision(watcher) {
     const range = AI.effectiveVisionRange(watcher.config.visionRange, player, watcher.brain.alertness);
     const fov = AI.effectiveFov(watcher.config.fov, watcher.brain.alertness, watcher.brain.state);
-    ctx.save();
-    ctx.translate(watcher.x, watcher.y);
-    ctx.rotate(watcher.angle);
-    const g = ctx.createRadialGradient(0, 0, 10, 0, 0, range);
+    const polygon = C.visionPolygon(watcher, range, fov, blockers, 44);
+    if (polygon.length < 3) return;
+
+    const g = ctx.createRadialGradient(watcher.x, watcher.y, 10, watcher.x, watcher.y, range);
     const hot = watcher.suspicion > .42 || watcher.brain.state === AI.STATES.CHASE;
     g.addColorStop(0, hot ? "rgba(244,112,91,.23)" : watcher.role === "sister" ? "rgba(173,151,230,.15)" : "rgba(247,205,112,.16)");
     g.addColorStop(1, "rgba(247,205,112,0)");
+
+    ctx.save();
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, range, -fov / 2, fov / 2);
+    ctx.moveTo(polygon[0].x, polygon[0].y);
+    for (let i = 1; i < polygon.length; i += 1) ctx.lineTo(polygon[i].x, polygon[i].y);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
