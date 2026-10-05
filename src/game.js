@@ -251,7 +251,15 @@
     ui.result.classList.add("hidden");
 
     loadStage(saved.stageIndex, false);
-    if (stage.retrySpawn) {
+    if (saved.hasRecipe && stage.safe && stage.finalEscapeNoise) {
+      player.x = stage.safe.x;
+      player.y = stage.safe.y;
+      player.actionLock = .55;
+      emitNoise(stage.safe, stage.finalEscapeNoise, true, true);
+      for (const watcher of watchers) {
+        watcher.brain.alertness = Math.max(watcher.brain.alertness, .62);
+      }
+    } else if (stage.retrySpawn) {
       player.x = stage.retrySpawn.x;
       player.y = stage.retrySpawn.y;
     }
@@ -261,7 +269,12 @@
     renderJournal();
     updateMission();
     updateSuspicionUI();
-    showToast(`DAY ${stage.day} 저장 지점에서 재개했다.`, 2.0);
+    showToast(
+      saved.hasRecipe && stage.finalEscapeNoise
+        ? "원본 확보 직후부터 재개 · 소리를 들은 엄마와 언니가 다시 움직인다."
+        : `DAY ${stage.day} 저장 지점에서 재개했다.`,
+      2.0
+    );
     saveSession();
     return true;
   }
