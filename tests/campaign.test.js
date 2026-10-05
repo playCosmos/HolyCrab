@@ -285,3 +285,22 @@ test("repeat visits vary patrol phase without leaving the supported range", () =
   }
   assert.ok(phases.size >= 3);
 });
+
+
+test("retry spawns are valid and prevent the banchan exit teleport shortcut", () => {
+  const banchan = Campaign.LOCATIONS.banchan;
+  assert.ok(banchan.retrySpawn);
+
+  const distanceToExit = Math.hypot(
+    banchan.retrySpawn.x - banchan.exit.x,
+    banchan.retrySpawn.y - banchan.exit.y
+  );
+  assert.ok(distanceToExit > 400);
+
+  for (let i = 0; i < 30; i += 1) {
+    const campaign = Campaign.generateCampaign("retry-" + i);
+    for (const stage of campaign.stages) {
+      assert.deepEqual(Campaign.validateStage(stage), { ok: true });
+    }
+  }
+});
