@@ -84,6 +84,7 @@
       side: "right",
       summary: [
         ["장소", stage.name],
+        ["현장 상태", stage.layoutName || "기본 배치"],
         ["핵심 단서", `${stage.clues.length}개`],
         ["아이템", "맵에 1개 배치"],
         ["가짜 메모", "진행과 무관"]

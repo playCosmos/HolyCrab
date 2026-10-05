@@ -304,3 +304,52 @@ test("retry spawns are valid and prevent the banchan exit teleport shortcut", ()
     }
   }
 });
+
+
+test("repeat visits materially change map layout and stealth resources", () => {
+  for (let i = 0; i < 30; i += 1) {
+    const campaign = Campaign.generateCampaign("layout-variation-" + i);
+    for (const locationKey of ["home", "market", "banchan"]) {
+      const visits = campaign.stages.filter(stage => stage.locationKey === locationKey);
+      const layoutKeys = visits.map(stage => stage.layoutKey);
+      assert.equal(
+        new Set(layoutKeys).size,
+        visits.length,
+        `${locationKey}: repeated visit reused layout key`
+      );
+
+      const signatures = visits.map(stage => JSON.stringify({
+        furniture: stage.furniture.map(item => [item.kind, item.label, item.x, item.y, item.w, item.h]),
+        hides: stage.hideSpots.map(item => item.id),
+        distractions: stage.distractions.map(item => item.id)
+      }));
+      assert.equal(
+        new Set(signatures).size,
+        visits.length,
+        `${locationKey}: repeated visit reused the same physical/resource layout`
+      );
+    }
+  }
+});
+
+test("visit-specific solid props keep NPC navigation valid", () => {
+  for (let i = 0; i < 50; i += 1) {
+    const campaign = Campaign.generateCampaign("variant-nav-" + i);
+    for (const stage of campaign.stages) {
+      assert.ok(stage.layoutKey);
+      assert.ok(stage.layoutName);
+      const navigation = C.validateStageNavigation(stage, 28);
+      assert.equal(navigation.ok, true, `${stage.id} / ${stage.layoutKey}: ${navigation.reason || "blocked"}`);
+    }
+  }
+});
+
+test("finale uses its own lockdown layout with reduced safe resources", () => {
+  const campaign = Campaign.generateCampaign("final-layout");
+  const finale = campaign.stages.at(-1);
+
+  assert.equal(finale.layoutKey, "home-finale-lockdown");
+  assert.ok(finale.furniture.some(item => item.kind === "visit-prop"));
+  assert.deepEqual(finale.hideSpots.map(item => item.id).sort(), ["home-island", "home-wardrobe"]);
+  assert.deepEqual(finale.distractions.map(item => item.id).sort(), ["home-microwave", "home-tv"]);
+});

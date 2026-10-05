@@ -257,3 +257,31 @@ test("restored legacy hoards are clamped to the current carry capacity", () => {
   assert.equal(harness.elements.get("inventory-binding").textContent, "포장끈 × 2/2");
   assert.equal(harness.elements.get("inventory-cigarette").textContent, "담배 × 2/2");
 });
+
+
+test("final recipe save resumes inside the escape beat instead of a safe shortcut", () => {
+  const storage = new Map();
+  const raw = Session.encode({
+    seedInput: "final-resume",
+    stageIndex: 9,
+    collected: {
+      "final-ratio": true,
+      "final-cool": true,
+      "final-rest": true
+    },
+    pickedItems: {},
+    usedDistractions: {},
+    inventory: { binding: 1, cigarette: 1 },
+    hasRecipe: true,
+    caught: 0,
+    elapsed: 600,
+    stageCaughtStart: 0
+  });
+  storage.set(Session.STORAGE_KEY, raw);
+
+  const harness = createHarness(storage);
+  harness.dispatchElement("continue-btn");
+
+  assert.match(harness.elements.get("toast").textContent, /원본 확보 직후부터 재개/);
+  assert.match(harness.elements.get("mission").textContent, /현관으로 최종 탈출/);
+});

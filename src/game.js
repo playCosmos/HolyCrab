@@ -251,7 +251,15 @@
     ui.result.classList.add("hidden");
 
     loadStage(saved.stageIndex, false);
-    if (stage.retrySpawn) {
+    if (saved.hasRecipe && stage.safe && stage.finalEscapeNoise) {
+      player.x = stage.safe.x;
+      player.y = stage.safe.y;
+      player.actionLock = .55;
+      emitNoise(stage.safe, stage.finalEscapeNoise, true, true);
+      for (const watcher of watchers) {
+        watcher.brain.alertness = Math.max(watcher.brain.alertness, .62);
+      }
+    } else if (stage.retrySpawn) {
       player.x = stage.retrySpawn.x;
       player.y = stage.retrySpawn.y;
     }
@@ -261,7 +269,12 @@
     renderJournal();
     updateMission();
     updateSuspicionUI();
-    showToast(`DAY ${stage.day} 저장 지점에서 재개했다.`, 2.0);
+    showToast(
+      saved.hasRecipe && stage.finalEscapeNoise
+        ? "원본 확보 직후부터 재개 · 소리를 들은 엄마와 언니가 다시 움직인다."
+        : `DAY ${stage.day} 저장 지점에서 재개했다.`,
+      2.0
+    );
     saveSession();
     return true;
   }
@@ -708,8 +721,19 @@
         player.actionLock = .8;
         hasRecipe = true;
         audio.success();
+        if (stage.finalEscapeNoise) {
+          emitNoise(safe, stage.finalEscapeNoise, true, true);
+          for (const watcher of watchers) {
+            watcher.brain.alertness = C.clamp(watcher.brain.alertness + .12, 0, 1);
+          }
+        }
         saveSession();
-        showToast("원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.", 3);
+        showToast(
+          stage.finalEscapeNoise
+            ? "원본을 꺼내는 소리가 났다. 엄마와 언니가 반응했다 — 현관까지 빠져나가자."
+            : "원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.",
+          3
+        );
       }
       return;
     }
@@ -1160,9 +1184,8 @@
     ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
     if (!stageCluesComplete()) {
       ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
-      ui.submission.textContent = stage.sisterActive
-        ? "엄마와 언니를 피하며 오늘의 핵심 단서를 찾자."
-        : "엄마를 피하며 오늘의 핵심 단서를 찾자.";
+      const pursuers = stage.sisterActive ? "엄마와 언니" : "엄마";
+      ui.submission.textContent = `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`;
     } else if (safe && !hasRecipe) {
       ui.mission.textContent = "원본 레시피 위치로 이동";
       ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
