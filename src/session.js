@@ -49,6 +49,7 @@
       stageIndex: source.stageIndex,
       collected: normalizeFlags(source.collected),
       pickedItems: normalizeFlags(source.pickedItems),
+      usedDistractions: normalizeFlags(source.usedDistractions),
       inventory: normalizeInventory(source.inventory),
       hasRecipe: source.hasRecipe === true,
       caught: source.caught,
@@ -69,6 +70,7 @@
     if (!value.inventory || !nonNegativeInt(value.inventory.binding) || !nonNegativeInt(value.inventory.cigarette)) return false;
     if (!value.collected || typeof value.collected !== "object" || Array.isArray(value.collected)) return false;
     if (!value.pickedItems || typeof value.pickedItems !== "object" || Array.isArray(value.pickedItems)) return false;
+    if (value.usedDistractions != null && (typeof value.usedDistractions !== "object" || Array.isArray(value.usedDistractions))) return false;
     return true;
   }
 
