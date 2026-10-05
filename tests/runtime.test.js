@@ -264,7 +264,11 @@ test("final recipe save resumes inside the escape beat instead of a safe shortcu
   const raw = Session.encode({
     seedInput: "final-resume",
     stageIndex: 9,
-    collected: {},
+    collected: {
+      "final-ratio": true,
+      "final-cool": true,
+      "final-rest": true
+    },
     pickedItems: {},
     usedDistractions: {},
     inventory: { binding: 1, cigarette: 1 },
