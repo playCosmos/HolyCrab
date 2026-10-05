@@ -244,6 +244,10 @@
     ui.result.classList.add("hidden");
 
     loadStage(saved.stageIndex, false);
+    if (stage.retrySpawn) {
+      player.x = stage.retrySpawn.x;
+      player.y = stage.retrySpawn.y;
+    }
     stageCaughtStart = saved.stageCaughtStart;
     gameState = "playing";
     updateInventoryUI();
@@ -732,8 +736,10 @@
     freeze = 1.2;
     player.hidden = false;
     player.hideSpot = null;
-    player.x = stage.spawn.x;
-    player.y = stage.spawn.y;
+    const retrySpawn = stage.retrySpawn || stage.spawn;
+    player.x = retrySpawn.x;
+    player.y = retrySpawn.y;
+    player.actionLock = 0;
     player.velocity.x = 0;
     player.velocity.y = 0;
 
