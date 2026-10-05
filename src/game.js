@@ -83,6 +83,7 @@
 
   let gameState = "start";
   let pausedFromState = null;
+  let runCompleted = false;
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
@@ -166,7 +167,7 @@
   }
 
   function saveSession() {
-    if (gameState === "start" || gameState === "result") return false;
+    if (runCompleted || gameState === "start" || gameState === "result") return false;
     const encoded = Session.encode(makeSessionSnapshot());
     if (!encoded) return false;
     try {
@@ -222,6 +223,7 @@
       return false;
     }
 
+    runCompleted = false;
     campaignSeedInput = saved.seedInput;
     campaign = Campaign.generateCampaign(campaignSeedInput);
     if (saved.stageIndex >= campaign.stages.length) {
@@ -432,6 +434,7 @@
   function startCampaign() {
     clearSavedSession();
     pausedFromState = null;
+    runCompleted = false;
     campaignSeedInput = Date.now();
     campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
@@ -672,6 +675,7 @@
 
   function finishRun() {
     const rank = C.rankCampaign({ caught, seconds: elapsed });
+    runCompleted = true;
     clearSavedSession();
     ui.resultRank.textContent = `${rank.rank} · ${rank.label}`;
     ui.resultTime.textContent = C.formatTime(elapsed);
