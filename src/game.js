@@ -95,6 +95,7 @@
   let freeze = 0;
   let toastTimer = 0;
   let footstepTimer = 0;
+  let autosaveTimer = 8;
   let noiseRings = [];
   let stageCaughtStart = 0;
   let vnLines = [];
@@ -412,6 +413,8 @@
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
+        autosaveTimer = 8;
+        saveSession();
         showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
       });
     } else {
@@ -427,7 +430,9 @@
   }
 
   function startCampaign() {
-    campaign = Campaign.generateCampaign(Date.now());
+    clearSavedSession();
+    campaignSeedInput = Date.now();
+    campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
     pickedItems = Object.create(null);
     inventory = { binding: 0, cigarette: 0 };
@@ -437,6 +442,9 @@
     hasRecipe = false;
     caught = 0;
     elapsed = 0;
+    stageCaughtStart = 0;
+    autosaveTimer = 8;
+    ui.pause.classList.add("hidden");
     ui.result.classList.add("hidden");
     loadStage(0, false);
     updateInventoryUI();
@@ -445,6 +453,7 @@
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
+        saveSession();
         showToast("DAY 1 · 첫 작전을 시작한다.", 2.2);
       });
     });
@@ -655,7 +664,8 @@
   }
 
   function finishRun() {
-    const rank = rankCampaign();
+    const rank = C.rankCampaign({ caught, seconds: elapsed });
+    clearSavedSession();
     ui.resultRank.textContent = `${rank.rank} · ${rank.label}`;
     ui.resultTime.textContent = C.formatTime(elapsed);
     ui.resultCaught.textContent = `${caught}회`;
@@ -702,9 +712,11 @@
     }
 
     audio.alert();
+    saveSession();
     showVN(Story.caught(watcher.role, caught), () => {
       freeze = 0;
       gameState = "playing";
+      saveSession();
       showToast("작전 재개 · 이미 확보한 기록은 유지된다.", 1.8);
     }, { tone: "caught" });
   }
