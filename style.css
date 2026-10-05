@@ -144,36 +144,6 @@ kbd {
 }
 .panel h1, .panel h2, .panel p { margin-top: 0; }
 
-.title-panel {
-  width: min(980px, 92%);
-  display: grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 26px;
-  align-items: stretch;
-}
-.title-copy { padding: 10px 4px; display: flex; flex-direction: column; justify-content: center; }
-.logo { font-weight: 900; font-size: clamp(42px, 7vw, 88px); line-height: .9; letter-spacing: -.04em; }
-.logo em { color: var(--peach); font-style: normal; }
-.subtitle { margin-top: 14px; font-size: 20px; font-weight: 700; }
-.desc { margin-top: 14px; color: rgba(255,245,234,.76); line-height: 1.6; }
-.portrait {
-  min-height: 430px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #f8dfcf, #d98762);
-  overflow: hidden;
-  position: relative;
-}
-.portrait img { width: 100%; height: 100%; object-fit: cover; object-position: 52% 35%; display: block; }
-.portrait::after {
-  content: "라먀니";
-  position: absolute;
-  left: 16px; bottom: 14px;
-  font-weight: 900; font-size: 22px;
-  color: #2b1c1c;
-  background: rgba(255,245,234,.82);
-  padding: 6px 10px; border-radius: 10px;
-}
-
 button {
   appearance: none;
   border: 0;
@@ -213,11 +183,6 @@ button:active { transform: translateY(0); }
 .clue strong { display: block; font-size: 13px; }
 .clue span { display: block; font-size: 12px; opacity: .78; margin-top: 3px; line-height: 1.45; }
 
-#puzzle-panel .q { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); }
-#puzzle-panel .opts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 8px; }
-#puzzle-panel .opt { background: rgba(255,255,255,.08); color: var(--cream); border: 1px solid rgba(255,255,255,.1); }
-#puzzle-panel .opt.selected { outline: 2px solid var(--peach); background: rgba(244,160,111,.18); }
-
 .result-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -228,40 +193,12 @@ button:active { transform: translateY(0); }
 .stat b { display: block; font-size: 22px; color: #f4b27f; }
 .stat span { font-size: 11px; opacity: .7; }
 
-@media (max-width: 760px) {
-  .title-panel { grid-template-columns: 1fr; }
-  .portrait { display: none; }
-  #suspicion-card { width: 170px; }
-  #controls { display: none; }
-  #mission-card { width: 60vw; }
-}
-
-
-#stage-intro {
-  background:
-    radial-gradient(circle at 25% 35%, rgba(244,160,111,.14), transparent 34%),
-    radial-gradient(circle at 78% 60%, rgba(164,127,217,.10), transparent 30%),
-    rgba(11,9,13,.86);
-}
-.day-panel { max-width: 720px; }
 .day-kicker {
   color: #f2b37f;
   font-weight: 900;
   letter-spacing: .18em;
   font-size: 13px;
   margin-bottom: 9px;
-}
-.day-panel h1 { margin-bottom: 12px; }
-.day-panel p { line-height: 1.7; color: rgba(255,245,234,.82); }
-.day-rules {
-  margin-top: 18px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.055);
-  border: 1px solid rgba(255,255,255,.08);
-  color: rgba(255,245,234,.68);
-  font-size: 12px;
-  line-height: 1.55;
 }
 .clue-stage {
   margin-top: 14px;
