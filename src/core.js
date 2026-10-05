@@ -352,11 +352,63 @@
     return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }
 
-  function rankRun({ caught, seconds }) {
-    if (caught === 0 && seconds < 240) return { rank: "S", label: "게장 괴도" };
-    if (caught <= 1 && seconds < 420) return { rank: "A", label: "새벽의 집게발" };
-    if (caught <= 3) return { rank: "B", label: "무난한 절도(?)" };
-    return { rank: "C", label: "엄마가 다 알고 있었음" };
+  function rankCampaign({ caught, seconds }) {
+    if (caught === 0 && seconds < 1200) return { rank: "S", label: "게장 대도" };
+    if (caught <= 2 && seconds < 1650) return { rank: "A", label: "시장 골목의 집게발" };
+    if (caught <= 5) return { rank: "B", label: "끈질긴 레시피 추적자" };
+    return { rank: "C", label: "엄마가 처음부터 다 알고 있었음" };
+  }
+
+  function rayRectDistance(origin, angle, maxDistance, rect) {
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    let tMin = 0;
+    let tMax = maxDistance;
+
+    const axes = [
+      [origin.x, dx, rect.x, rect.x + rect.w],
+      [origin.y, dy, rect.y, rect.y + rect.h]
+    ];
+
+    for (const [originValue, direction, minValue, maxValue] of axes) {
+      if (Math.abs(direction) < 1e-9) {
+        if (originValue < minValue || originValue > maxValue) return null;
+        continue;
+      }
+      let t1 = (minValue - originValue) / direction;
+      let t2 = (maxValue - originValue) / direction;
+      if (t1 > t2) [t1, t2] = [t2, t1];
+      tMin = Math.max(tMin, t1);
+      tMax = Math.min(tMax, t2);
+      if (tMin > tMax) return null;
+    }
+
+    if (tMax < 0 || tMin > maxDistance) return null;
+    return clamp(Math.max(0, tMin), 0, maxDistance);
+  }
+
+  function raycastDistance(origin, angle, maxDistance, blockers) {
+    let nearest = maxDistance;
+    for (const rect of blockers || []) {
+      const hit = rayRectDistance(origin, angle, maxDistance, rect);
+      if (hit != null && hit < nearest) nearest = hit;
+    }
+    return nearest;
+  }
+
+  function visionPolygon(observer, range, fovRadians, blockers, rayCount = 36) {
+    const rays = Math.max(6, Math.floor(rayCount));
+    const points = [{ x: observer.x, y: observer.y }];
+    const start = observer.angle - fovRadians / 2;
+    for (let i = 0; i <= rays; i += 1) {
+      const angle = start + fovRadians * (i / rays);
+      const distance = raycastDistance(observer, angle, range, blockers);
+      points.push({
+        x: observer.x + Math.cos(angle) * distance,
+        y: observer.y + Math.sin(angle) * distance
+      });
+    }
+    return points;
   }
 
   return {
@@ -376,6 +428,9 @@
     inVisionCone,
     nearestInteractable,
     formatTime,
-    rankRun
+    rankCampaign,
+    rayRectDistance,
+    raycastDistance,
+    visionPolygon
   };
 });
