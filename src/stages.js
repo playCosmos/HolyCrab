@@ -225,6 +225,122 @@
     }];
   }
 
+
+  const LAYOUT_VARIANTS = {
+    home: [
+      {
+        key: "home-opening",
+        name: "평소 배치",
+        hideIds: ["home-wardrobe", "home-sofa"],
+        distractionIds: ["home-tv", "home-phone"]
+      },
+      {
+        key: "home-return",
+        name: "장본 물건이 쌓인 저녁",
+        furnitureAdd: [
+          { x: 1010, y: 690, w: 100, h: 34, kind: "visit-prop", label: "장보기 상자", color: "#715a45" }
+        ],
+        hideIds: ["home-wardrobe", "home-island"],
+        distractionIds: ["home-phone", "home-microwave"]
+      }
+    ],
+    market: [
+      {
+        key: "market-opening",
+        name: "평일 아침",
+        hideIds: ["market-west-crate", "market-center-awning"],
+        distractionIds: ["market-bell", "market-speaker"]
+      },
+      {
+        key: "market-delivery",
+        name: "납품 카트가 들어온 날",
+        furnitureAdd: [
+          { x: 690, y: 335, w: 70, h: 45, kind: "visit-prop", label: "납품 카트", color: "#665846" }
+        ],
+        hideIds: ["market-center-awning", "market-east-crate"],
+        distractionIds: ["market-can", "market-speaker"]
+      },
+      {
+        key: "market-busy",
+        name: "장날 적재물",
+        furnitureAdd: [
+          { x: 1040, y: 340, w: 70, h: 50, kind: "visit-prop", label: "채소 바구니", color: "#59604a" }
+        ],
+        hideIds: ["market-west-crate", "market-east-crate"],
+        distractionIds: ["market-bell", "market-can"]
+      },
+      {
+        key: "market-closing",
+        name: "마감 준비",
+        furnitureAdd: [
+          { x: 520, y: 350, w: 75, h: 45, kind: "visit-prop", label: "접은 좌판", color: "#67534b" }
+        ],
+        hideIds: ["market-west-crate", "market-center-awning"],
+        distractionIds: ["market-can", "market-speaker"]
+      }
+    ],
+    banchan: [
+      {
+        key: "shop-opening",
+        name: "영업 중",
+        hideIds: ["shop-display", "shop-kitchen"],
+        distractionIds: ["shop-chime", "shop-timer"]
+      },
+      {
+        key: "shop-packing",
+        name: "포장 작업 중",
+        furnitureAdd: [
+          { x: 770, y: 355, w: 90, h: 55, kind: "visit-prop", label: "이동 포장대", color: "#65534d" }
+        ],
+        hideIds: ["shop-counter", "shop-kitchen"],
+        distractionIds: ["shop-timer", "shop-tray"]
+      },
+      {
+        key: "shop-restock",
+        name: "재료 입고일",
+        furnitureAdd: [
+          { x: 600, y: 250, w: 90, h: 50, kind: "visit-prop", label: "재료 상자", color: "#5e5545" }
+        ],
+        hideIds: ["shop-display", "shop-counter"],
+        distractionIds: ["shop-chime", "shop-tray"]
+      },
+      {
+        key: "shop-closing",
+        name: "마감 정리",
+        furnitureAdd: [
+          { x: 620, y: 600, w: 90, h: 40, kind: "visit-prop", label: "정리 바구니", color: "#665247" }
+        ],
+        hideIds: ["shop-counter", "shop-kitchen"],
+        distractionIds: ["shop-timer", "shop-tray"]
+      }
+    ]
+  };
+
+  function selectByIds(list, ids) {
+    if (!Array.isArray(ids) || !ids.length) return clone(list || []);
+    const wanted = new Set(ids);
+    return clone((list || []).filter(item => wanted.has(item.id)));
+  }
+
+  function applyLayoutVariant(stage, locationKey, visitIndex) {
+    const variants = LAYOUT_VARIANTS[locationKey] || [];
+    const variant = variants[Math.min(visitIndex, variants.length - 1)] || null;
+    if (!variant) {
+      stage.layoutKey = `${locationKey}-base`;
+      stage.layoutName = "기본 배치";
+      return stage;
+    }
+
+    stage.layoutKey = variant.key;
+    stage.layoutName = variant.name;
+    if (Array.isArray(variant.furnitureAdd)) {
+      stage.furniture.push(...clone(variant.furnitureAdd));
+    }
+    stage.hideSpots = selectByIds(stage.hideSpots, variant.hideIds);
+    stage.distractions = selectByIds(stage.distractions, variant.distractionIds);
+    return stage;
+  }
+
   const LOCATIONS = {
     home: {
       key: "home",
@@ -552,11 +668,12 @@
     stage.sisterAI = {
       visionRange: 205 + sisterFactor * 55,
       fov: 1.16 + sisterFactor * .20,
-      patrolSpeed: 82 + sisterFactor * 20,
+      patrolSpeed: 82 + sisterFactor * 18,
       investigateSpeed: 108 + sisterFactor * 18,
       chaseSpeed: 138 + sisterFactor * 24,
       hearing: .92 + sisterFactor * .30
     };
+    applyLayoutVariant(stage, locationKey, visitIndex);
     return stage;
   }
 
@@ -584,6 +701,13 @@
     stage.patrolSister = clone(HOME_PATROL).reverse();
     stage.patrolPhase = 2;
     stage.sisterPatrolPhase = 1;
+    stage.layoutKey = "home-finale-lockdown";
+    stage.layoutName = "원본을 지키는 최종 배치";
+    stage.furniture.push(
+      { x: 845, y: 515, w: 72, h: 44, kind: "visit-prop", label: "치워둔 상자", color: "#6d5146" }
+    );
+    stage.hideSpots = selectByIds(stage.hideSpots, ["home-wardrobe", "home-island"]);
+    stage.distractions = selectByIds(stage.distractions, ["home-tv", "home-microwave"]);
     return stage;
   }
 
@@ -676,6 +800,19 @@
     if (!Array.isArray(stage.items)) return { ok: false, reason: "items missing" };
     if (!Array.isArray(stage.entries) || stage.entries.length !== stage.clues.length + stage.decoys.length) {
       return { ok: false, reason: "evidence entries invalid" };
+    }
+    if (!stage.layoutKey || !stage.layoutName) return { ok: false, reason: "layout variant missing" };
+
+    const requiredPoints = [
+      ...stage.clues.map(x => ({ ...x, interactionKind: "clue" })),
+      ...stage.items.map(x => ({ ...x, interactionKind: "item" })),
+      ...(stage.safe ? [{ ...stage.safe, interactionKind: "safe" }] : []),
+      { ...stage.exit, interactionKind: "exit" }
+    ];
+    for (const point of requiredPoints) {
+      if (!clearOfSolids(point, point.interactionKind === "exit" ? 10 : 7, stage)) {
+        return { ok: false, reason: `required interaction intersects solid: ${point.id || point.interactionKind}` };
+      }
     }
 
     const interactionPoints = [
