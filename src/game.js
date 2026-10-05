@@ -12,6 +12,7 @@
   const ctx = canvas.getContext("2d");
   const W = 1440;
   const H = 810;
+  const ITEM_CAPACITY = Object.freeze({ binding: 2, cigarette: 2 });
   const bounds = { x: 14, y: 14, w: W - 28, h: H - 28 };
   canvas.width = W;
   canvas.height = H;
@@ -61,6 +62,7 @@
   const player = {
     x: 0, y: 0, r: 16, angle: 0,
     hidden: false, hideSpot: null, moving: false, sneaking: false,
+    actionLock: 0,
     velocity: { x: 0, y: 0 }
   };
 
@@ -86,6 +88,7 @@
   let runCompleted = false;
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
+  let usedDistractions = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
   let boostTimer = 0;
   let coughTimer = 0;
@@ -141,6 +144,7 @@
       stageIndex,
       collected,
       pickedItems,
+      usedDistractions,
       inventory,
       hasRecipe,
       caught,
@@ -233,7 +237,11 @@
 
     collected = Object.assign(Object.create(null), saved.collected);
     pickedItems = Object.assign(Object.create(null), saved.pickedItems);
-    inventory = { ...saved.inventory };
+    usedDistractions = Object.assign(Object.create(null), saved.usedDistractions || {});
+    inventory = {
+      binding: Math.min(ITEM_CAPACITY.binding, saved.inventory.binding || 0),
+      cigarette: Math.min(ITEM_CAPACITY.cigarette, saved.inventory.cigarette || 0)
+    };
     hasRecipe = saved.hasRecipe;
     caught = saved.caught;
     elapsed = saved.elapsed;
@@ -243,6 +251,10 @@
     ui.result.classList.add("hidden");
 
     loadStage(saved.stageIndex, false);
+    if (stage.retrySpawn) {
+      player.x = stage.retrySpawn.x;
+      player.y = stage.retrySpawn.y;
+    }
     stageCaughtStart = saved.stageCaughtStart;
     gameState = "playing";
     updateInventoryUI();
@@ -342,6 +354,12 @@
     };
   }
 
+  function phasedPatrolIndex(watcher, phase = 0) {
+    if (!watcher.patrol.length) return 0;
+    const nearest = AI.nearestPatrolIndex(watcher, watcher.patrol);
+    return (nearest + Math.max(0, Math.floor(phase || 0))) % watcher.patrol.length;
+  }
+
   function stageClueCount() {
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
@@ -373,7 +391,10 @@
     decoyDefs = (stage.decoys || []).map(x => ({ ...x }));
     itemDefs = (stage.items || []).map(x => ({ ...x, kind: "item" }));
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
-    distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0 }));
+    distractions = stage.distractions.map(x => {
+      const key = `${stage.id}:${x.id}`;
+      return { ...x, kind: "distraction", used: !!usedDistractions[key], usageKey: key };
+    });
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
 
@@ -384,18 +405,19 @@
     player.hideSpot = null;
     player.moving = false;
     player.sneaking = false;
+    player.actionLock = 0;
     player.velocity.x = 0;
     player.velocity.y = 0;
 
     const momAlert = Math.min(.62, (stage.day - 1) * .055 + caught * .035);
     const mom = makeWatcher("mom", stage.momSpawn, stage.patrolMom, stage.ai, "#5b3f48", momAlert);
-    mom.patrolIndex = AI.nearestPatrolIndex(mom, mom.patrol);
+    mom.patrolIndex = phasedPatrolIndex(mom, stage.patrolPhase);
     watchers = [mom];
 
     if (stage.sisterActive) {
       const sisterAlert = Math.min(.68, .18 + (stage.day - 5) * .05 + caught * .025);
       const sister = makeWatcher("sister", stage.sisterSpawn, stage.patrolSister, stage.sisterAI, "#56506f", sisterAlert);
-      sister.patrolIndex = AI.nearestPatrolIndex(sister, sister.patrol);
+      sister.patrolIndex = phasedPatrolIndex(sister, stage.sisterPatrolPhase);
       watchers.push(sister);
     }
 
@@ -439,6 +461,7 @@
     campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
     pickedItems = Object.create(null);
+    usedDistractions = Object.create(null);
     inventory = { binding: 0, cigarette: 0 };
     boostTimer = 0;
     coughTimer = 0;
@@ -503,10 +526,26 @@
     return true;
   }
 
-  function emitNoise(pos, baseRadius, strong = false) {
+  function emitNoise(pos, baseRadius, strong = false, splitWatchers = false) {
     noiseRings.push({ x: pos.x, y: pos.y, radius: 8, max: baseRadius, life: .8 });
+
+    let primary = null;
+    if (splitWatchers) {
+      let best = Infinity;
+      for (const watcher of watchers) {
+        if (watcher.boundTimer > 0) continue;
+        const d = C.dist(watcher, pos);
+        if (d < best) {
+          best = d;
+          primary = watcher;
+        }
+      }
+    }
+
     for (const watcher of watchers) {
-      watcherHears(watcher, pos, baseRadius * (strong ? 1.18 : 1));
+      const strength = strong ? 1.18 : 1;
+      const splitScale = splitWatchers && primary && watcher !== primary ? .62 : 1;
+      watcherHears(watcher, pos, baseRadius * strength * splitScale);
     }
   }
 
@@ -539,11 +578,18 @@
       if (!collected[d.id]) list.push({ ...d, kind: "decoy", label: `${d.title} 살펴보기` });
     }
     for (const item of itemDefs) {
-      if (!pickedItems[item.id]) list.push({ ...item, kind: "item", label: `${item.title} 줍기` });
+      if (!pickedItems[item.id]) {
+        const full = (inventory[item.type] || 0) >= (ITEM_CAPACITY[item.type] || 2);
+        list.push({
+          ...item,
+          kind: "item",
+          label: full ? `${item.title} · 소지 한도` : `${item.title} 줍기`
+        });
+      }
     }
     list.push(...hideSpots);
     for (const d of distractions) {
-      if (d.cooldown <= 0) list.push(d);
+      if (!d.used) list.push(d);
     }
     if (safe && !hasRecipe) list.push(safe);
     list.push(exitDoor);
@@ -568,7 +614,7 @@
   }
 
   function interact() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     audio.click();
 
     if (player.hidden) {
@@ -583,6 +629,7 @@
     if (!obj) return;
 
     if (obj.kind === "clue") {
+      player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
@@ -592,6 +639,7 @@
     }
 
     if (obj.kind === "decoy") {
+      player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
@@ -601,6 +649,12 @@
     }
 
     if (obj.kind === "item") {
+      const capacity = ITEM_CAPACITY[obj.type] || 2;
+      if ((inventory[obj.type] || 0) >= capacity) {
+        showToast(`${obj.title}은(는) ${capacity}개까지 들 수 있다. 하나를 사용한 뒤 다시 주울 수 있다.`, 1.8);
+        return;
+      }
+      player.actionLock = .25;
       pickedItems[obj.id] = true;
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
       audio.pickup();
@@ -633,12 +687,15 @@
     }
 
     if (obj.kind === "distraction") {
-      obj.cooldown = 12;
-      emitNoise(obj, obj.radius || 450, true);
+      player.actionLock = .35;
+      obj.used = true;
+      usedDistractions[obj.usageKey || `${stage.id}:${obj.id}`] = true;
+      emitNoise(obj, obj.radius || 450, true, true);
+      saveSession();
       showToast(
         stage.sisterActive
-          ? "소리를 냈다. 엄마와 언니가 각자 들은 위치를 확인한다."
-          : "소리를 냈다. 엄마가 들은 위치를 확인한다.",
+          ? "소리를 냈다. 가까운 추적자가 더 크게 반응한다. 같은 장치에는 오늘 다시 속지 않는다."
+          : "소리를 냈다. 엄마가 확인하러 간다. 같은 장치에는 오늘 다시 속지 않는다.",
         1.8
       );
       return;
@@ -648,6 +705,7 @@
       if (!stageCluesComplete()) {
         showToast("오늘 모은 기록만으로는 아직 원본 위치를 확정할 수 없다.", 2);
       } else {
+        player.actionLock = .8;
         hasRecipe = true;
         audio.success();
         saveSession();
@@ -703,8 +761,10 @@
     freeze = 1.2;
     player.hidden = false;
     player.hideSpot = null;
-    player.x = stage.spawn.x;
-    player.y = stage.spawn.y;
+    const retrySpawn = stage.retrySpawn || stage.spawn;
+    player.x = retrySpawn.x;
+    player.y = retrySpawn.y;
+    player.actionLock = 0;
     player.velocity.x = 0;
     player.velocity.y = 0;
 
@@ -713,7 +773,10 @@
       w.x = spawn.x;
       w.y = spawn.y;
       w.angle = spawn.angle || 0;
-      w.patrolIndex = AI.nearestPatrolIndex(w, w.patrol);
+      w.patrolIndex = phasedPatrolIndex(
+        w,
+        w.role === "mom" ? stage.patrolPhase : stage.sisterPatrolPhase
+      );
       w.target = null;
       w.suspicion = 0;
       w.boundTimer = 0;
@@ -733,7 +796,7 @@
   }
 
   function updatePlayer(dt) {
-    if (player.hidden) {
+    if (player.hidden || player.actionLock > 0) {
       player.moving = false;
       player.velocity.x = 0;
       player.velocity.y = 0;
@@ -889,6 +952,16 @@
       return false;
     }
 
+    if (
+      player.hidden &&
+      player.hideSpot &&
+      [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(brain.state) &&
+      C.dist(watcher, player) < 54
+    ) {
+      caughtBy(watcher);
+      return true;
+    }
+
     const sees = watcherCanSeePlayer(watcher);
 
     if (sees) {
@@ -995,7 +1068,7 @@
   }
 
   function useBindingItem() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     if (player.hidden) {
       showToast("숨은 상태에서는 포장끈을 사용할 수 없다.", 1.2);
       return;
@@ -1028,7 +1101,7 @@
   }
 
   function useCigarette() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     if (player.hidden) {
       showToast("숨은 상태에서는 담배를 사용할 수 없다.", 1.2);
       return;
@@ -1054,8 +1127,8 @@
   }
 
   function updateInventoryUI() {
-    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}`;
-    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}`;
+    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`;
+    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`;
     if (ui.boostStatus) {
       ui.boostStatus.textContent = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
       ui.boostStatus.classList.toggle("hidden", boostTimer <= 0);
@@ -1081,7 +1154,6 @@
       r.radius += (r.max - r.radius) * Math.min(1, dt * 5);
       return r.life > 0;
     });
-    for (const d of distractions) d.cooldown = Math.max(0, d.cooldown - dt);
   }
 
   function updateMission() {
@@ -1106,8 +1178,22 @@
       return;
     }
     let text = "";
-    if (player.hidden) text = "E · 숨는 곳에서 나오기";
-    else text = interactionPrompt(nearestUsableInteractable(72));
+    if (player.actionLock > 0) {
+      text = "확인 중… 잠깐 움직일 수 없다";
+    } else if (player.hidden) {
+      const searcher = watchers
+        .filter(watcher =>
+          watcher.boundTimer <= 0 &&
+          [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
+        )
+        .map(watcher => ({ watcher, distance: C.dist(watcher, player) }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      text = searcher && searcher.distance < 110
+        ? `⚠ ${searcher.watcher.name}가 숨은 곳을 수색 중 · E · 나오기`
+        : "E · 숨는 곳에서 나오기";
+    } else {
+      text = interactionPrompt(nearestUsableInteractable(72));
+    }
     if (text) {
       ui.prompt.textContent = text;
       ui.prompt.classList.add("show");
@@ -1140,6 +1226,7 @@
     if (gameState !== "playing") return;
 
     elapsed += dt;
+    player.actionLock = Math.max(0, player.actionLock - dt);
     autosaveTimer -= dt;
     if (autosaveTimer <= 0) {
       autosaveTimer = 8;
@@ -1265,7 +1352,7 @@
     }
 
     for (const d of distractions) {
-      ctx.fillStyle = d.cooldown > 0 ? "rgba(255,255,255,.13)" : "rgba(130,200,214,.62)";
+      ctx.fillStyle = d.used ? "rgba(255,255,255,.10)" : "rgba(130,200,214,.62)";
       ctx.beginPath(); ctx.arc(d.x, d.y, 7, 0, Math.PI * 2); ctx.fill();
     }
 

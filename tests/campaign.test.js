@@ -105,27 +105,34 @@ test("later days increase misleading record density", () => {
   }
 });
 
-test("campaign places exactly one collectible item per day with balanced types", () => {
-  const c = Campaign.generateCampaign("item-seed");
-  assert.equal(c.stages.length, 10);
+test("campaign places one collectible per day with a balanced non-repetitive item plan", () => {
+  for (const seed of ["item-seed-a", "item-seed-b", "item-seed-c", "item-seed-d"]) {
+    const c = Campaign.generateCampaign(seed);
+    assert.equal(c.stages.length, 10);
+    assert.equal(c.itemPlan.length, 10);
 
-  const items = [];
-  for (const stage of c.stages) {
-    assert.equal(stage.items.length, 1);
-    const item = stage.items[0];
-    items.push(item);
-    assert.ok(Number.isFinite(item.x));
-    assert.ok(Number.isFinite(item.y));
-    assert.ok(["binding", "cigarette"].includes(item.type));
+    const items = [];
+    for (const stage of c.stages) {
+      assert.equal(stage.items.length, 1);
+      const item = stage.items[0];
+      items.push(item);
+      assert.ok(Number.isFinite(item.x));
+      assert.ok(Number.isFinite(item.y));
+      assert.ok(["binding", "cigarette"].includes(item.type));
+    }
+
+    assert.equal(items.filter(item => item.type === "binding").length, 5);
+    assert.equal(items.filter(item => item.type === "cigarette").length, 5);
+    assert.deepEqual(items.map(item => item.type), c.itemPlan);
+
+    for (let i = 2; i < c.itemPlan.length; i += 1) {
+      assert.equal(
+        c.itemPlan[i] === c.itemPlan[i - 1] && c.itemPlan[i] === c.itemPlan[i - 2],
+        false,
+        `${seed}: item streak longer than two days`
+      );
+    }
   }
-
-  assert.equal(items.filter(item => item.type === "binding").length, 5);
-  assert.equal(items.filter(item => item.type === "cigarette").length, 5);
-
-  c.stages.forEach((stage, index) => {
-    const expected = (index + 1) % 2 === 1 ? "binding" : "cigarette";
-    assert.equal(stage.items[0].type, expected);
-  });
 });
 
 test("AI remembers last seen position and enters chase", () => {
@@ -242,6 +249,58 @@ test("generated stage interaction points stay separated", () => {
     for (const stage of campaign.stages) {
       const result = Campaign.validateStage(stage);
       assert.equal(result.ok, true, stage.id + ": " + (result.reason || "layout check failed"));
+    }
+  }
+});
+
+
+test("sister difficulty ramps from day five instead of entering near finale strength", () => {
+  const c = Campaign.generateCampaign("sister-ramp");
+  const day5 = c.stages[4];
+  const day9 = c.stages[8];
+  const finale = c.stages[9];
+
+  assert.equal(day5.sisterActive, true);
+  assert.ok(day5.sisterAI.patrolSpeed <= 84);
+  assert.ok(day5.sisterAI.chaseSpeed <= 140);
+  assert.ok(day5.sisterAI.visionRange <= 210);
+
+  assert.ok(day9.sisterAI.patrolSpeed > day5.sisterAI.patrolSpeed);
+  assert.ok(day9.sisterAI.chaseSpeed > day5.sisterAI.chaseSpeed);
+  assert.ok(day9.sisterAI.visionRange > day5.sisterAI.visionRange);
+
+  assert.ok(finale.sisterAI.chaseSpeed > day9.sisterAI.chaseSpeed);
+});
+
+test("repeat visits vary patrol phase without leaving the supported range", () => {
+  const phases = new Set();
+  for (let i = 0; i < 30; i += 1) {
+    const c = Campaign.generateCampaign("phase-" + i);
+    for (const stage of c.stages.slice(0, -1)) {
+      assert.ok(stage.patrolPhase >= 0 && stage.patrolPhase <= 2);
+      assert.ok(stage.sisterPatrolPhase >= 0 && stage.sisterPatrolPhase <= 2);
+      phases.add(stage.patrolPhase);
+      phases.add(stage.sisterPatrolPhase);
+    }
+  }
+  assert.ok(phases.size >= 3);
+});
+
+
+test("retry spawns are valid and prevent the banchan exit teleport shortcut", () => {
+  const banchan = Campaign.LOCATIONS.banchan;
+  assert.ok(banchan.retrySpawn);
+
+  const distanceToExit = Math.hypot(
+    banchan.retrySpawn.x - banchan.exit.x,
+    banchan.retrySpawn.y - banchan.exit.y
+  );
+  assert.ok(distanceToExit > 400);
+
+  for (let i = 0; i < 30; i += 1) {
+    const campaign = Campaign.generateCampaign("retry-" + i);
+    for (const stage of campaign.stages) {
+      assert.deepEqual(Campaign.validateStage(stage), { ok: true });
     }
   }
 });

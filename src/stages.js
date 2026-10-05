@@ -180,18 +180,44 @@
     ]
   };
 
-  function makeItems(locationKey, day, rng, final = false) {
+  function itemPlanHasLongStreak(plan) {
+    for (let i = 2; i < plan.length; i += 1) {
+      if (plan[i] === plan[i - 1] && plan[i] === plan[i - 2]) return true;
+    }
+    return false;
+  }
+
+  function makeItemPlan(rng, totalDays = 10) {
+    const bindingCount = Math.ceil(totalDays / 2);
+    const cigaretteCount = totalDays - bindingCount;
+    const base = [
+      ...Array(bindingCount).fill("binding"),
+      ...Array(cigaretteCount).fill("cigarette")
+    ];
+
+    for (let i = 0; i < 80; i += 1) {
+      const candidate = shuffle(base, rng);
+      if (!itemPlanHasLongStreak(candidate)) return candidate;
+    }
+
+    const startsBinding = rng() < .5;
+    return Array.from({ length: totalDays }, (_, index) => (
+      (index % 2 === 0) === startsBinding ? "binding" : "cigarette"
+    ));
+  }
+
+  function makeItems(locationKey, day, rng, type) {
     const slots = shuffle(ITEM_SLOTS[locationKey] || [], rng);
-    const type = day % 2 === 1 ? "binding" : "cigarette";
+    const itemType = type === "cigarette" ? "cigarette" : "binding";
     const slot = slots[0] || { x: 720, y: 400 };
 
     return [{
-      id: `daily-item-${day}-${locationKey}-${type}`,
-      type,
+      id: `daily-item-${day}-${locationKey}-${itemType}`,
+      type: itemType,
       x: slot.x,
       y: slot.y,
-      title: type === "binding" ? "포장끈" : "담배",
-      text: type === "binding"
+      title: itemType === "binding" ? "포장끈" : "담배",
+      text: itemType === "binding"
         ? (day >= 5
           ? "오늘 맵 어딘가에 놓인 포장끈. 가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
           : "오늘 맵 어딘가에 놓인 포장끈. 가까운 엄마를 잠시 묶어 움직이지 못하게 한다.")
@@ -227,6 +253,7 @@
       ],
       furniture: HOME_FURNITURE,
       spawn: { x: 228, y: 340 },
+      retrySpawn: { x: 228, y: 340 },
       momSpawn: { x: 600, y: 300, angle: 0 },
       sisterSpawn: { x: 780, y: 700, angle: -1.2 },
       patrolMom: HOME_PATROL,
@@ -305,6 +332,7 @@
         { x: 1160, y: 556, w: 170, h: 120, kind: "stall-box", label: "박스 더미", color: "#665343" }
       ],
       spawn: { x: 70, y: 405 },
+      retrySpawn: { x: 110, y: 405 },
       momSpawn: { x: 370, y: 390, angle: 0 },
       sisterSpawn: { x: 1290, y: 470, angle: Math.PI },
       patrolMom: [
@@ -390,6 +418,7 @@
         { x: 1010, y: 590, w: 220, h: 80, kind: "shelf", label: "양념 선반", color: "#665048" }
       ],
       spawn: { x: 90, y: 700 },
+      retrySpawn: { x: 650, y: 710 },
       momSpawn: { x: 450, y: 640, angle: -1.2 },
       sisterSpawn: { x: 1300, y: 520, angle: Math.PI },
       patrolMom: [
@@ -487,7 +516,7 @@
     { id: "final-rest", x: 1185, y: 676, title: "원본 · 숙성", text: "1차 24시간 뒤 게를 건지고 간장물을 다시 끓여 식힌 다음 다시 부어 2차 숙성." }
   ];
 
-  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive, rng) {
+  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive, rng, itemType) {
     const base = LOCATIONS[locationKey];
     const visit = base.visits[Math.min(visitIndex, base.visits.length - 1)];
     const dayFactor = (day - 1) / Math.max(1, totalDays - 1);
@@ -506,9 +535,11 @@
     stage.clues = clone(visit.clues);
     stage.decoys = pickDecoys(locationKey, visitIndex, day, rng);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
-    stage.items = makeItems(locationKey, day, rng, false);
+    stage.items = makeItems(locationKey, day, rng, itemType);
     stage.sisterActive = !!sisterActive;
     stage.safe = null;
+    stage.patrolPhase = Math.floor(rng() * 3);
+    stage.sisterPatrolPhase = Math.floor(rng() * 3);
     stage.ai = {
       visionRange: 238 + dayFactor * 48,
       fov: 1.08 + dayFactor * .18,
@@ -517,18 +548,19 @@
       chaseSpeed: 126 + dayFactor * 24,
       hearing: .92 + dayFactor * .28
     };
+    const sisterFactor = Math.max(0, Math.min(1, (day - 5) / Math.max(1, totalDays - 5)));
     stage.sisterAI = {
-      visionRange: 220 + dayFactor * 44,
-      fov: 1.2 + dayFactor * .16,
-      patrolSpeed: 94 + dayFactor * 15,
-      investigateSpeed: 118 + dayFactor * 18,
-      chaseSpeed: 145 + dayFactor * 24,
-      hearing: 1.04 + dayFactor * .24
+      visionRange: 205 + sisterFactor * 55,
+      fov: 1.16 + sisterFactor * .20,
+      patrolSpeed: 82 + sisterFactor * 20,
+      investigateSpeed: 108 + sisterFactor * 18,
+      chaseSpeed: 138 + sisterFactor * 24,
+      hearing: .92 + sisterFactor * .30
     };
     return stage;
   }
 
-  function makeFinal(day, totalDays, rng) {
+  function makeFinal(day, totalDays, rng, itemType) {
     const base = LOCATIONS.home;
     const stage = clone(base);
     stage.id = "home-finale";
@@ -544,12 +576,14 @@
     stage.clues = clone(FINAL_CLUES);
     stage.decoys = shuffle(FINAL_DECOYS, rng).slice(0, 3).map(clone);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
-    stage.items = makeItems("home", day, rng, true);
+    stage.items = makeItems("home", day, rng, itemType);
     stage.sisterActive = true;
     stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
     stage.sisterAI = { visionRange: 266, fov: 1.42, patrolSpeed: 108, investigateSpeed: 136, chaseSpeed: 172, hearing: 1.3 };
     stage.patrolSister = clone(HOME_PATROL).reverse();
+    stage.patrolPhase = 2;
+    stage.sisterPatrolPhase = 1;
     return stage;
   }
 
@@ -600,23 +634,28 @@
 
     const route = ["home", ...best];
     const totalDays = 10;
+    const itemPlan = makeItemPlan(rng, totalDays);
     const counts = { home: 0, market: 0, banchan: 0 };
     const stages = [];
 
     route.forEach((locationKey, i) => {
       const day = i + 1;
       const visitIndex = counts[locationKey]++;
-      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5, rng));
+      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5, rng, itemPlan[i]));
     });
 
-    stages.push(makeFinal(totalDays, totalDays, rng));
-    return { seed, route: stages.map(stage => stage.locationKey), stages };
+    stages.push(makeFinal(totalDays, totalDays, rng, itemPlan[totalDays - 1]));
+    return { seed, route: stages.map(stage => stage.locationKey), itemPlan: itemPlan.slice(), stages };
   }
 
   function validateStage(stage) {
     const required = ["id", "name", "spawn", "momSpawn", "patrolMom", "clues", "exit"];
     for (const key of required) {
       if (stage[key] == null) return { ok: false, reason: `missing ${key}` };
+    }
+    if (!clearOfSolids(stage.spawn, 16, stage)) return { ok: false, reason: "player spawn intersects solid" };
+    if (stage.retrySpawn && !clearOfSolids(stage.retrySpawn, 16, stage)) {
+      return { ok: false, reason: "player retry spawn intersects solid" };
     }
     if (!Array.isArray(stage.patrolMom) || stage.patrolMom.length < 2) return { ok: false, reason: "mom patrol too short" };
     if (!clearOfSolids(stage.momSpawn, 19, stage)) return { ok: false, reason: "mom spawn intersects solid" };
