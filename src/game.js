@@ -61,6 +61,7 @@
   const player = {
     x: 0, y: 0, r: 16, angle: 0,
     hidden: false, hideSpot: null, moving: false, sneaking: false,
+    actionLock: 0,
     velocity: { x: 0, y: 0 }
   };
 
@@ -342,6 +343,12 @@
     };
   }
 
+  function phasedPatrolIndex(watcher, phase = 0) {
+    if (!watcher.patrol.length) return 0;
+    const nearest = AI.nearestPatrolIndex(watcher, watcher.patrol);
+    return (nearest + Math.max(0, Math.floor(phase || 0))) % watcher.patrol.length;
+  }
+
   function stageClueCount() {
     return clueDefs.reduce((n, c) => n + (collected[c.id] ? 1 : 0), 0);
   }
@@ -384,18 +391,19 @@
     player.hideSpot = null;
     player.moving = false;
     player.sneaking = false;
+    player.actionLock = 0;
     player.velocity.x = 0;
     player.velocity.y = 0;
 
     const momAlert = Math.min(.62, (stage.day - 1) * .055 + caught * .035);
     const mom = makeWatcher("mom", stage.momSpawn, stage.patrolMom, stage.ai, "#5b3f48", momAlert);
-    mom.patrolIndex = AI.nearestPatrolIndex(mom, mom.patrol);
+    mom.patrolIndex = phasedPatrolIndex(mom, stage.patrolPhase);
     watchers = [mom];
 
     if (stage.sisterActive) {
       const sisterAlert = Math.min(.68, .18 + (stage.day - 5) * .05 + caught * .025);
       const sister = makeWatcher("sister", stage.sisterSpawn, stage.patrolSister, stage.sisterAI, "#56506f", sisterAlert);
-      sister.patrolIndex = AI.nearestPatrolIndex(sister, sister.patrol);
+      sister.patrolIndex = phasedPatrolIndex(sister, stage.sisterPatrolPhase);
       watchers.push(sister);
     }
 
@@ -568,7 +576,7 @@
   }
 
   function interact() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     audio.click();
 
     if (player.hidden) {
@@ -583,6 +591,7 @@
     if (!obj) return;
 
     if (obj.kind === "clue") {
+      player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
@@ -592,6 +601,7 @@
     }
 
     if (obj.kind === "decoy") {
+      player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
@@ -601,6 +611,7 @@
     }
 
     if (obj.kind === "item") {
+      player.actionLock = .25;
       pickedItems[obj.id] = true;
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
       audio.pickup();
@@ -633,8 +644,9 @@
     }
 
     if (obj.kind === "distraction") {
+      player.actionLock = .35;
       obj.cooldown = 12;
-      emitNoise(obj, obj.radius || 450, true);
+      emitNoise(obj, obj.radius || 450, true, true);
       showToast(
         stage.sisterActive
           ? "소리를 냈다. 엄마와 언니가 각자 들은 위치를 확인한다."
@@ -648,6 +660,7 @@
       if (!stageCluesComplete()) {
         showToast("오늘 모은 기록만으로는 아직 원본 위치를 확정할 수 없다.", 2);
       } else {
+        player.actionLock = .8;
         hasRecipe = true;
         audio.success();
         saveSession();
@@ -713,7 +726,10 @@
       w.x = spawn.x;
       w.y = spawn.y;
       w.angle = spawn.angle || 0;
-      w.patrolIndex = AI.nearestPatrolIndex(w, w.patrol);
+      w.patrolIndex = phasedPatrolIndex(
+        w,
+        w.role === "mom" ? stage.patrolPhase : stage.sisterPatrolPhase
+      );
       w.target = null;
       w.suspicion = 0;
       w.boundTimer = 0;
@@ -733,7 +749,7 @@
   }
 
   function updatePlayer(dt) {
-    if (player.hidden) {
+    if (player.hidden || player.actionLock > 0) {
       player.moving = false;
       player.velocity.x = 0;
       player.velocity.y = 0;
@@ -1140,6 +1156,7 @@
     if (gameState !== "playing") return;
 
     elapsed += dt;
+    player.actionLock = Math.max(0, player.actionLock - dt);
     autosaveTimer -= dt;
     if (autosaveTimer <= 0) {
       autosaveTimer = 8;
