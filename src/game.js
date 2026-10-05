@@ -431,6 +431,7 @@
 
   function startCampaign() {
     clearSavedSession();
+    pausedFromState = null;
     campaignSeedInput = Date.now();
     campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
@@ -1458,9 +1459,14 @@
   }
 
   window.addEventListener("keydown", e => {
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space"].includes(e.code)) e.preventDefault();
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Tab","Space","Escape"].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
     if (e.repeat) return;
+    if (e.code === "Escape") {
+      if (gameState === "playing") pauseGame();
+      else if (gameState === "paused") resumeGame();
+      return;
+    }
     if (gameState === "start" && ["Space", "Enter"].includes(e.code)) {
       beginFromStartScreen();
       return;
@@ -1478,12 +1484,38 @@
   window.addEventListener("keyup", e => { keys[e.code] = false; });
   window.addEventListener("blur", () => Object.keys(keys).forEach(k => delete keys[k]));
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && gameState === "playing") {
+      pauseGame("창이 비활성화되어 자동으로 일시정지되었습니다.");
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (gameState !== "start" && gameState !== "result") saveSession();
+  });
+
   ui.startButton.addEventListener("click", event => {
     event.stopPropagation();
     beginFromStartScreen();
   });
 
-    ui.vnNext.addEventListener("click", event => {
+  ui.continueButton.addEventListener("click", event => {
+    event.stopPropagation();
+    audio.ensure();
+    resumeSavedCampaign();
+  });
+
+  ui.resume.addEventListener("click", event => {
+    event.stopPropagation();
+    resumeGame();
+  });
+
+  ui.pauseTitle.addEventListener("click", event => {
+    event.stopPropagation();
+    returnToTitle();
+  });
+
+  ui.vnNext.addEventListener("click", event => {
     event.stopPropagation();
     nextVN();
   });
@@ -1500,8 +1532,10 @@
   });
 
   ui.vnScene.classList.add("hidden");
+  ui.pause.classList.add("hidden");
   renderJournal();
   updateInventoryUI();
+  refreshContinueButton();
   requestAnimationFrame(frame);
 
 })();
