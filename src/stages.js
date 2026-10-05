@@ -180,18 +180,44 @@
     ]
   };
 
-  function makeItems(locationKey, day, rng, final = false) {
+  function itemPlanHasLongStreak(plan) {
+    for (let i = 2; i < plan.length; i += 1) {
+      if (plan[i] === plan[i - 1] && plan[i] === plan[i - 2]) return true;
+    }
+    return false;
+  }
+
+  function makeItemPlan(rng, totalDays = 10) {
+    const bindingCount = Math.ceil(totalDays / 2);
+    const cigaretteCount = totalDays - bindingCount;
+    const base = [
+      ...Array(bindingCount).fill("binding"),
+      ...Array(cigaretteCount).fill("cigarette")
+    ];
+
+    for (let i = 0; i < 80; i += 1) {
+      const candidate = shuffle(base, rng);
+      if (!itemPlanHasLongStreak(candidate)) return candidate;
+    }
+
+    const startsBinding = rng() < .5;
+    return Array.from({ length: totalDays }, (_, index) => (
+      (index % 2 === 0) === startsBinding ? "binding" : "cigarette"
+    ));
+  }
+
+  function makeItems(locationKey, day, rng, type) {
     const slots = shuffle(ITEM_SLOTS[locationKey] || [], rng);
-    const type = day % 2 === 1 ? "binding" : "cigarette";
+    const itemType = type === "cigarette" ? "cigarette" : "binding";
     const slot = slots[0] || { x: 720, y: 400 };
 
     return [{
-      id: `daily-item-${day}-${locationKey}-${type}`,
-      type,
+      id: `daily-item-${day}-${locationKey}-${itemType}`,
+      type: itemType,
       x: slot.x,
       y: slot.y,
-      title: type === "binding" ? "포장끈" : "담배",
-      text: type === "binding"
+      title: itemType === "binding" ? "포장끈" : "담배",
+      text: itemType === "binding"
         ? (day >= 5
           ? "오늘 맵 어딘가에 놓인 포장끈. 가까운 엄마나 언니 한 명을 잠시 묶어 움직이지 못하게 한다."
           : "오늘 맵 어딘가에 놓인 포장끈. 가까운 엄마를 잠시 묶어 움직이지 못하게 한다.")
@@ -487,7 +513,7 @@
     { id: "final-rest", x: 1185, y: 676, title: "원본 · 숙성", text: "1차 24시간 뒤 게를 건지고 간장물을 다시 끓여 식힌 다음 다시 부어 2차 숙성." }
   ];
 
-  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive, rng) {
+  function makeVisit(locationKey, visitIndex, day, totalDays, sisterActive, rng, itemType) {
     const base = LOCATIONS[locationKey];
     const visit = base.visits[Math.min(visitIndex, base.visits.length - 1)];
     const dayFactor = (day - 1) / Math.max(1, totalDays - 1);
@@ -506,7 +532,7 @@
     stage.clues = clone(visit.clues);
     stage.decoys = pickDecoys(locationKey, visitIndex, day, rng);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
-    stage.items = makeItems(locationKey, day, rng, false);
+    stage.items = makeItems(locationKey, day, rng, itemType);
     stage.sisterActive = !!sisterActive;
     stage.safe = null;
     stage.patrolPhase = Math.floor(rng() * 3);
@@ -531,7 +557,7 @@
     return stage;
   }
 
-  function makeFinal(day, totalDays, rng) {
+  function makeFinal(day, totalDays, rng, itemType) {
     const base = LOCATIONS.home;
     const stage = clone(base);
     stage.id = "home-finale";
@@ -547,7 +573,7 @@
     stage.clues = clone(FINAL_CLUES);
     stage.decoys = shuffle(FINAL_DECOYS, rng).slice(0, 3).map(clone);
     stage.entries = shuffle([...stage.clues, ...stage.decoys], rng);
-    stage.items = makeItems("home", day, rng, true);
+    stage.items = makeItems("home", day, rng, itemType);
     stage.sisterActive = true;
     stage.safe = { x: 1392, y: 690, label: "원본 레시피 꺼내기" };
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
@@ -605,17 +631,18 @@
 
     const route = ["home", ...best];
     const totalDays = 10;
+    const itemPlan = makeItemPlan(rng, totalDays);
     const counts = { home: 0, market: 0, banchan: 0 };
     const stages = [];
 
     route.forEach((locationKey, i) => {
       const day = i + 1;
       const visitIndex = counts[locationKey]++;
-      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5, rng));
+      stages.push(makeVisit(locationKey, visitIndex, day, totalDays, day >= 5, rng, itemPlan[i]));
     });
 
-    stages.push(makeFinal(totalDays, totalDays, rng));
-    return { seed, route: stages.map(stage => stage.locationKey), stages };
+    stages.push(makeFinal(totalDays, totalDays, rng, itemPlan[totalDays - 1]));
+    return { seed, route: stages.map(stage => stage.locationKey), itemPlan: itemPlan.slice(), stages };
   }
 
   function validateStage(stage) {
