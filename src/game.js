@@ -133,6 +133,124 @@
   }
   const audio = new AudioEngine();
 
+  function makeSessionSnapshot() {
+    return Session.makeSnapshot({
+      seedInput: campaignSeedInput,
+      stageIndex,
+      collected,
+      pickedItems,
+      inventory,
+      hasRecipe,
+      caught,
+      elapsed,
+      stageCaughtStart
+    });
+  }
+
+  function readSavedSession() {
+    try {
+      return Session.decode(window.localStorage.getItem(Session.STORAGE_KEY), 10);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function refreshContinueButton() {
+    const saved = readSavedSession();
+    ui.continueButton.classList.toggle("hidden", !saved);
+    if (!saved) {
+      try { window.localStorage.removeItem(Session.STORAGE_KEY); } catch (_) {}
+    }
+    return saved;
+  }
+
+  function saveSession() {
+    if (gameState === "start" || gameState === "result") return false;
+    const encoded = Session.encode(makeSessionSnapshot());
+    if (!encoded) return false;
+    try {
+      window.localStorage.setItem(Session.STORAGE_KEY, encoded);
+      ui.continueButton.classList.remove("hidden");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearSavedSession() {
+    try { window.localStorage.removeItem(Session.STORAGE_KEY); } catch (_) {}
+    ui.continueButton.classList.add("hidden");
+  }
+
+  function pauseGame(reason = "게임이 일시정지되었습니다.") {
+    if (gameState !== "playing") return false;
+    pausedFromState = gameState;
+    gameState = "paused";
+    for (const key of Object.keys(keys)) delete keys[key];
+    ui.pauseReason.textContent = reason;
+    ui.pause.classList.remove("hidden");
+    ui.journal.classList.add("hidden");
+    saveSession();
+    return true;
+  }
+
+  function resumeGame() {
+    if (gameState !== "paused") return false;
+    gameState = pausedFromState || "playing";
+    pausedFromState = null;
+    lastFrame = performance.now();
+    ui.pause.classList.add("hidden");
+    return true;
+  }
+
+  function returnToTitle() {
+    if (gameState === "paused") saveSession();
+    pausedFromState = null;
+    gameState = "start";
+    ui.pause.classList.add("hidden");
+    ui.vnScene.classList.add("hidden");
+    ui.result.classList.add("hidden");
+    ui.startScreen.classList.remove("hidden");
+    refreshContinueButton();
+  }
+
+  function resumeSavedCampaign() {
+    const saved = readSavedSession();
+    if (!saved) {
+      refreshContinueButton();
+      return false;
+    }
+
+    campaignSeedInput = saved.seedInput;
+    campaign = Campaign.generateCampaign(campaignSeedInput);
+    if (saved.stageIndex >= campaign.stages.length) {
+      clearSavedSession();
+      return false;
+    }
+
+    collected = Object.assign(Object.create(null), saved.collected);
+    pickedItems = Object.assign(Object.create(null), saved.pickedItems);
+    inventory = { ...saved.inventory };
+    hasRecipe = saved.hasRecipe;
+    caught = saved.caught;
+    elapsed = saved.elapsed;
+    ui.startScreen.classList.add("hidden");
+    ui.pause.classList.add("hidden");
+    ui.vnScene.classList.add("hidden");
+    ui.result.classList.add("hidden");
+
+    loadStage(saved.stageIndex, false);
+    stageCaughtStart = saved.stageCaughtStart;
+    gameState = "playing";
+    updateInventoryUI();
+    renderJournal();
+    updateMission();
+    updateSuspicionUI();
+    showToast(`DAY ${stage.day} 저장 지점에서 재개했다.`, 2.0);
+    saveSession();
+    return true;
+  }
+
   function renderVNLine() {
     const line = vnLines[vnIndex];
     if (!line) return;
