@@ -12,6 +12,8 @@ test("opening explains mission, controls, and daily item use", () => {
   assert.match(text, /Shift/);
   assert.match(text, /포장끈/);
   assert.match(text, /담배/);
+  assert.match(text, /최대 2개|각각 2개/);
+  assert.match(text, /숨었다고 끝이 아니라|수색자가 바로 옆/);
   assert.ok(scenes.some(s => s.portrait === "mom"));
   assert.equal(scenes.length, 6);
   assert.doesNotMatch(text, /민트초코|담뱃재|치약|언니/);
@@ -35,7 +37,7 @@ test("day five intro brings in sister", () => {
 test("caught scene uses the pursuer portrait and preserves progress", () => {
   const scenes = Story.caught("sister", 2);
   assert.equal(scenes[0].portrait, "sister");
-  assert.match(scenes.at(-1).text, /시작점/);
+  assert.match(scenes.at(-1).text, /재진입 지점/);
   assert.ok(scenes.at(-1).summary.some(([k,v]) => k === "기록" && v === "유지"));
 });
 
@@ -81,8 +83,8 @@ test("runtime guidance omits fake-recipe examples and does not mention sister be
 
   assert.doesNotMatch(gameSource, /민트초코|담뱃재/);
   assert.match(gameSource, /stage\.sisterActive/);
-  assert.match(gameSource, /엄마가 들은 위치를 확인한다/);
-  assert.match(gameSource, /엄마와 언니가 각자 들은 위치를 확인한다/);
+  assert.match(gameSource, /같은 장치에는 오늘 다시 속지 않는다/);
+  assert.match(gameSource, /가까운 추적자가 더 크게 반응한다/);
 });
 
 
