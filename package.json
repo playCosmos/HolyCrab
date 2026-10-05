@@ -1,6 +1,6 @@
 {
   "name": "holycrab",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "description": "10일 동안 집·시장·반찬가게를 오가며 가짜 기록을 가려내고 간장게장 레시피를 훔치는 스텔스 코미디 게임",
   "scripts": {
