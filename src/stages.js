@@ -509,6 +509,8 @@
     stage.items = makeItems(locationKey, day, rng, false);
     stage.sisterActive = !!sisterActive;
     stage.safe = null;
+    stage.patrolPhase = Math.floor(rng() * 3);
+    stage.sisterPatrolPhase = Math.floor(rng() * 3);
     stage.ai = {
       visionRange: 238 + dayFactor * 48,
       fov: 1.08 + dayFactor * .18,
@@ -517,13 +519,14 @@
       chaseSpeed: 126 + dayFactor * 24,
       hearing: .92 + dayFactor * .28
     };
+    const sisterFactor = Math.max(0, Math.min(1, (day - 5) / Math.max(1, totalDays - 5)));
     stage.sisterAI = {
-      visionRange: 220 + dayFactor * 44,
-      fov: 1.2 + dayFactor * .16,
-      patrolSpeed: 94 + dayFactor * 15,
-      investigateSpeed: 118 + dayFactor * 18,
-      chaseSpeed: 145 + dayFactor * 24,
-      hearing: 1.04 + dayFactor * .24
+      visionRange: 205 + sisterFactor * 55,
+      fov: 1.16 + sisterFactor * .20,
+      patrolSpeed: 82 + sisterFactor * 20,
+      investigateSpeed: 108 + sisterFactor * 18,
+      chaseSpeed: 138 + sisterFactor * 24,
+      hearing: .92 + sisterFactor * .30
     };
     return stage;
   }
@@ -550,6 +553,8 @@
     stage.ai = { visionRange: 292, fov: 1.34, patrolSpeed: 94, investigateSpeed: 124, chaseSpeed: 154, hearing: 1.24 };
     stage.sisterAI = { visionRange: 266, fov: 1.42, patrolSpeed: 108, investigateSpeed: 136, chaseSpeed: 172, hearing: 1.3 };
     stage.patrolSister = clone(HOME_PATROL).reverse();
+    stage.patrolPhase = 2;
+    stage.sisterPatrolPhase = 1;
     return stage;
   }
 
