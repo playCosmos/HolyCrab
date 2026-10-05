@@ -511,10 +511,26 @@
     return true;
   }
 
-  function emitNoise(pos, baseRadius, strong = false) {
+  function emitNoise(pos, baseRadius, strong = false, splitWatchers = false) {
     noiseRings.push({ x: pos.x, y: pos.y, radius: 8, max: baseRadius, life: .8 });
+
+    let primary = null;
+    if (splitWatchers) {
+      let best = Infinity;
+      for (const watcher of watchers) {
+        if (watcher.boundTimer > 0) continue;
+        const d = C.dist(watcher, pos);
+        if (d < best) {
+          best = d;
+          primary = watcher;
+        }
+      }
+    }
+
     for (const watcher of watchers) {
-      watcherHears(watcher, pos, baseRadius * (strong ? 1.18 : 1));
+      const strength = strong ? 1.18 : 1;
+      const splitScale = splitWatchers && primary && watcher !== primary ? .62 : 1;
+      watcherHears(watcher, pos, baseRadius * strength * splitScale);
     }
   }
 
@@ -903,6 +919,16 @@
         watcher.target = brain.searchPoints[0] || { x: watcher.x, y: watcher.y };
       }
       return false;
+    }
+
+    if (
+      player.hidden &&
+      player.hideSpot &&
+      [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(brain.state) &&
+      C.dist(watcher, player) < 54
+    ) {
+      caughtBy(watcher);
+      return true;
     }
 
     const sees = watcherCanSeePlayer(watcher);
