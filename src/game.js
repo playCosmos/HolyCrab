@@ -570,6 +570,7 @@
     if (player.hidden) {
       player.hidden = false;
       player.hideSpot = null;
+      saveSession();
       showToast("숨는 곳에서 나왔다.", 1.1);
       return;
     }
@@ -581,6 +582,7 @@
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
+      saveSession();
       showToast(`핵심 기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
       return;
     }
@@ -589,6 +591,7 @@
       collected[obj.id] = true;
       renderJournal();
       audio.pickup();
+      saveSession();
       showToast(`쓸모없는 기록 · ${obj.title}: ${obj.text}`, 3.0);
       return;
     }
@@ -604,6 +607,7 @@
         : "2번 키로 사용하면 잠시 빨라진다. 피울 때 기침 소리가 난다.";
       showToast(`${obj.title} 획득 · ${detail}`, 2.8);
       updateInventoryUI();
+      saveSession();
       return;
     }
 
@@ -619,6 +623,7 @@
       player.y = obj.y;
       player.velocity.x = 0;
       player.velocity.y = 0;
+      saveSession();
       showToast("숨었다. 마지막으로 본 위치를 수색해도 여기서는 바로 보이지 않는다.", 1.8);
       return;
     }
@@ -641,6 +646,7 @@
       } else {
         hasRecipe = true;
         audio.success();
+        saveSession();
         showToast("원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.", 3);
       }
       return;
@@ -1013,6 +1019,7 @@
     audio.click();
     showToast(`${watcher.name}를 포장끈으로 묶어뒀다. 약 8초 동안 움직이지 못한다.`, 2.2);
     updateInventoryUI();
+    saveSession();
   }
 
   function useCigarette() {
@@ -1038,6 +1045,7 @@
     audio.click();
     showToast("담배 사용 · 7초 동안 이동 속도 +45%. 기침 소리에 주의.", 2.4);
     updateInventoryUI();
+    saveSession();
   }
 
   function updateInventoryUI() {
@@ -1127,6 +1135,11 @@
     if (gameState !== "playing") return;
 
     elapsed += dt;
+    autosaveTimer -= dt;
+    if (autosaveTimer <= 0) {
+      autosaveTimer = 8;
+      saveSession();
+    }
     if (freeze > 0) {
       freeze -= dt;
       updateMission();
