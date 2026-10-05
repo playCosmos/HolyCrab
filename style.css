@@ -765,6 +765,28 @@ button:active { transform: translateY(0); }
   font-size: 16px;
 }
 
+.start-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.start-actions .start-btn:not(.primary) {
+  color: var(--cream);
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,245,234,.16);
+}
+
+.pause-panel {
+  max-width: 520px;
+}
+
+.pause-panel p {
+  color: rgba(255,245,234,.72);
+  line-height: 1.6;
+}
+
 .start-hint {
   margin-top: 13px;
   color: rgba(255,245,234,.42);
