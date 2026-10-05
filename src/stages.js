@@ -668,7 +668,7 @@
     stage.sisterAI = {
       visionRange: 205 + sisterFactor * 55,
       fov: 1.16 + sisterFactor * .20,
-      patrolSpeed: 82 + sisterFactor * 18,
+      patrolSpeed: 82 + sisterFactor * 20,
       investigateSpeed: 108 + sisterFactor * 18,
       chaseSpeed: 138 + sisterFactor * 24,
       hearing: .92 + sisterFactor * .30
@@ -803,6 +803,7 @@
     }
     if (!stage.layoutKey || !stage.layoutName) return { ok: false, reason: "layout variant missing" };
 
+    const visitProps = (stage.furniture || []).filter(item => item.kind === "visit-prop");
     const requiredPoints = [
       ...stage.clues.map(x => ({ ...x, interactionKind: "clue" })),
       ...stage.items.map(x => ({ ...x, interactionKind: "item" })),
@@ -810,8 +811,8 @@
       { ...stage.exit, interactionKind: "exit" }
     ];
     for (const point of requiredPoints) {
-      if (!clearOfSolids(point, point.interactionKind === "exit" ? 10 : 7, stage)) {
-        return { ok: false, reason: `required interaction intersects solid: ${point.id || point.interactionKind}` };
+      if (visitProps.some(rect => circleOverlapsRect(point, 10, rect))) {
+        return { ok: false, reason: `visit prop blocks required interaction: ${point.id || point.interactionKind}` };
       }
     }
 
