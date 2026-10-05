@@ -708,8 +708,19 @@
         player.actionLock = .8;
         hasRecipe = true;
         audio.success();
+        if (stage.finalEscapeNoise) {
+          emitNoise(safe, stage.finalEscapeNoise, true, true);
+          for (const watcher of watchers) {
+            watcher.brain.alertness = C.clamp(watcher.brain.alertness + .12, 0, 1);
+          }
+        }
         saveSession();
-        showToast("원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.", 3);
+        showToast(
+          stage.finalEscapeNoise
+            ? "원본을 꺼내는 소리가 났다. 엄마와 언니가 반응했다 — 현관까지 빠져나가자."
+            : "원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.",
+          3
+        );
       }
       return;
     }
