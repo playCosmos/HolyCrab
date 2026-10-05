@@ -233,3 +233,27 @@ test("actual game runtime reaches play, pauses, saves, and restores", () => {
   second.dispatchWindow("keydown", { code: "Escape" });
   assert.equal(second.elements.get("pause").classList.contains("hidden"), false);
 });
+
+
+test("restored legacy hoards are clamped to the current carry capacity", () => {
+  const storage = new Map();
+  const raw = Session.encode({
+    seedInput: "capacity-restore",
+    stageIndex: 0,
+    collected: {},
+    pickedItems: {},
+    usedDistractions: {},
+    inventory: { binding: 9, cigarette: 7 },
+    hasRecipe: false,
+    caught: 0,
+    elapsed: 12,
+    stageCaughtStart: 0
+  });
+  storage.set(Session.STORAGE_KEY, raw);
+
+  const harness = createHarness(storage);
+  harness.dispatchElement("continue-btn");
+
+  assert.equal(harness.elements.get("inventory-binding").textContent, "포장끈 × 2/2");
+  assert.equal(harness.elements.get("inventory-cigarette").textContent, "담배 × 2/2");
+});
