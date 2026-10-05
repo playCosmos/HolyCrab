@@ -253,6 +253,7 @@
       ],
       furniture: HOME_FURNITURE,
       spawn: { x: 228, y: 340 },
+      retrySpawn: { x: 228, y: 340 },
       momSpawn: { x: 600, y: 300, angle: 0 },
       sisterSpawn: { x: 780, y: 700, angle: -1.2 },
       patrolMom: HOME_PATROL,
@@ -331,6 +332,7 @@
         { x: 1160, y: 556, w: 170, h: 120, kind: "stall-box", label: "박스 더미", color: "#665343" }
       ],
       spawn: { x: 70, y: 405 },
+      retrySpawn: { x: 110, y: 405 },
       momSpawn: { x: 370, y: 390, angle: 0 },
       sisterSpawn: { x: 1290, y: 470, angle: Math.PI },
       patrolMom: [
@@ -416,6 +418,7 @@
         { x: 1010, y: 590, w: 220, h: 80, kind: "shelf", label: "양념 선반", color: "#665048" }
       ],
       spawn: { x: 90, y: 700 },
+      retrySpawn: { x: 650, y: 710 },
       momSpawn: { x: 450, y: 640, angle: -1.2 },
       sisterSpawn: { x: 1300, y: 520, angle: Math.PI },
       patrolMom: [
@@ -649,6 +652,10 @@
     const required = ["id", "name", "spawn", "momSpawn", "patrolMom", "clues", "exit"];
     for (const key of required) {
       if (stage[key] == null) return { ok: false, reason: `missing ${key}` };
+    }
+    if (!clearOfSolids(stage.spawn, 16, stage)) return { ok: false, reason: "player spawn intersects solid" };
+    if (stage.retrySpawn && !clearOfSolids(stage.retrySpawn, 16, stage)) {
+      return { ok: false, reason: "player retry spawn intersects solid" };
     }
     if (!Array.isArray(stage.patrolMom) || stage.patrolMom.length < 2) return { ok: false, reason: "mom patrol too short" };
     if (!clearOfSolids(stage.momSpawn, 19, stage)) return { ok: false, reason: "mom spawn intersects solid" };
