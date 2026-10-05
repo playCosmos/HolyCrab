@@ -88,6 +88,7 @@
   let runCompleted = false;
   let collected = Object.create(null);
   let pickedItems = Object.create(null);
+  let usedDistractions = Object.create(null);
   let inventory = { binding: 0, cigarette: 0 };
   let boostTimer = 0;
   let coughTimer = 0;
@@ -143,6 +144,7 @@
       stageIndex,
       collected,
       pickedItems,
+      usedDistractions,
       inventory,
       hasRecipe,
       caught,
@@ -235,6 +237,7 @@
 
     collected = Object.assign(Object.create(null), saved.collected);
     pickedItems = Object.assign(Object.create(null), saved.pickedItems);
+    usedDistractions = Object.assign(Object.create(null), saved.usedDistractions || {});
     inventory = {
       binding: Math.min(ITEM_CAPACITY.binding, saved.inventory.binding || 0),
       cigarette: Math.min(ITEM_CAPACITY.cigarette, saved.inventory.cigarette || 0)
@@ -388,7 +391,10 @@
     decoyDefs = (stage.decoys || []).map(x => ({ ...x }));
     itemDefs = (stage.items || []).map(x => ({ ...x, kind: "item" }));
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
-    distractions = stage.distractions.map(x => ({ ...x, kind: "distraction", cooldown: 0, used: false }));
+    distractions = stage.distractions.map(x => {
+      const key = `${stage.id}:${x.id}`;
+      return { ...x, kind: "distraction", cooldown: 0, used: !!usedDistractions[key], usageKey: key };
+    });
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
 
@@ -455,6 +461,7 @@
     campaign = Campaign.generateCampaign(campaignSeedInput);
     collected = Object.create(null);
     pickedItems = Object.create(null);
+    usedDistractions = Object.create(null);
     inventory = { binding: 0, cigarette: 0 };
     boostTimer = 0;
     coughTimer = 0;
@@ -682,8 +689,10 @@
     if (obj.kind === "distraction") {
       player.actionLock = .35;
       obj.used = true;
+      usedDistractions[obj.usageKey || `${stage.id}:${obj.id}`] = true;
       obj.cooldown = 0;
       emitNoise(obj, obj.radius || 450, true, true);
+      saveSession();
       showToast(
         stage.sisterActive
           ? "소리를 냈다. 가까운 추적자가 더 크게 반응한다. 같은 장치에는 오늘 다시 속지 않는다."
