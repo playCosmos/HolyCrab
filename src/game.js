@@ -393,7 +393,7 @@
     hideSpots = stage.hideSpots.map(x => ({ ...x, kind: "hide" }));
     distractions = stage.distractions.map(x => {
       const key = `${stage.id}:${x.id}`;
-      return { ...x, kind: "distraction", cooldown: 0, used: !!usedDistractions[key], usageKey: key };
+      return { ...x, kind: "distraction", used: !!usedDistractions[key], usageKey: key };
     });
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
@@ -589,7 +589,7 @@
     }
     list.push(...hideSpots);
     for (const d of distractions) {
-      if (!d.used && d.cooldown <= 0) list.push(d);
+      if (!d.used) list.push(d);
     }
     if (safe && !hasRecipe) list.push(safe);
     list.push(exitDoor);
@@ -690,7 +690,6 @@
       player.actionLock = .35;
       obj.used = true;
       usedDistractions[obj.usageKey || `${stage.id}:${obj.id}`] = true;
-      obj.cooldown = 0;
       emitNoise(obj, obj.radius || 450, true, true);
       saveSession();
       showToast(
@@ -1069,7 +1068,7 @@
   }
 
   function useBindingItem() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     if (player.hidden) {
       showToast("숨은 상태에서는 포장끈을 사용할 수 없다.", 1.2);
       return;
@@ -1102,7 +1101,7 @@
   }
 
   function useCigarette() {
-    if (gameState !== "playing" || freeze > 0) return;
+    if (gameState !== "playing" || freeze > 0 || player.actionLock > 0) return;
     if (player.hidden) {
       showToast("숨은 상태에서는 담배를 사용할 수 없다.", 1.2);
       return;
@@ -1155,7 +1154,6 @@
       r.radius += (r.max - r.radius) * Math.min(1, dt * 5);
       return r.life > 0;
     });
-    for (const d of distractions) d.cooldown = Math.max(0, d.cooldown - dt);
   }
 
   function updateMission() {
@@ -1354,11 +1352,7 @@
     }
 
     for (const d of distractions) {
-      ctx.fillStyle = d.used
-        ? "rgba(255,255,255,.10)"
-        : d.cooldown > 0
-          ? "rgba(255,255,255,.13)"
-          : "rgba(130,200,214,.62)";
+      ctx.fillStyle = d.used ? "rgba(255,255,255,.10)" : "rgba(130,200,214,.62)";
       ctx.beginPath(); ctx.arc(d.x, d.y, 7, 0, Math.PI * 2); ctx.fill();
     }
 
