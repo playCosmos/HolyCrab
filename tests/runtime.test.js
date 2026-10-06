@@ -191,6 +191,7 @@ function createHarness(storageBacking = new Map()) {
     document,
     performance,
     requestAnimationFrame,
+    __HOLYCRAB_TEST__: true,
     addEventListener(type, handler) {
       (windowListeners[type] ||= []).push(handler);
     }
@@ -249,6 +250,7 @@ function createHarness(storageBacking = new Map()) {
     document,
     storageBacking,
     counters,
+    hooks: windowObject.__HolyCrabTestHooks,
     dispatchElement,
     dispatchWindow,
     dispatchDocument,
