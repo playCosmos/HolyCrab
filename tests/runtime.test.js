@@ -375,6 +375,11 @@ test("frame loop sleeps outside active play and static stage rendering is cached
   harness.stepFrame(1050.1);
   assert.equal(harness.hasPendingFrame(), false);
 
+  harness.dispatchWindow("pageshow");
+  assert.equal(harness.hasPendingFrame(), true);
+  harness.stepFrame(1066.8);
+  assert.equal(harness.hasPendingFrame(), false);
+
   harness.dispatchElement("resume-btn");
   assert.equal(harness.hasPendingFrame(), true);
   assert.equal(harness.counters.staticCanvasCreated, 1);
