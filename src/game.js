@@ -133,6 +133,7 @@
   let vnDone = null;
   let vnTone = "story";
   let lastFrame = performance.now();
+  let frameHandle = null;
 
   class AudioEngine {
     constructor() { this.ctx = null; }
@@ -242,6 +243,7 @@
     pausedFromState = null;
     lastFrame = performance.now();
     ui.pause.classList.add("hidden");
+    ensureFrameLoop();
     return true;
   }
 
@@ -317,6 +319,7 @@
       2.0
     );
     saveSession();
+    ensureFrameLoop();
     return true;
   }
 
@@ -361,6 +364,7 @@
     ui.prompt.classList.remove("show");
     ui.vnScene.classList.remove("hidden");
     renderVNLine();
+    ensureFrameLoop();
   }
 
   function nextVN() {
@@ -500,6 +504,7 @@
     updateSuspicionUI();
 
     stageCaughtStart = caught;
+    ensureFrameLoop();
     if (showIntro) {
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
@@ -1788,7 +1793,13 @@
     }
   }
 
+  function ensureFrameLoop() {
+    if (frameHandle != null) return;
+    frameHandle = requestAnimationFrame(frame);
+  }
+
   function frame(now) {
+    frameHandle = null;
     const dt = Math.min(.035, (now - lastFrame) / 1000 || 0);
     lastFrame = now;
     update(dt);
@@ -1796,7 +1807,7 @@
       draw();
       renderDirty = false;
     }
-    requestAnimationFrame(frame);
+    if (gameState === "playing" || renderDirty) ensureFrameLoop();
   }
 
   window.addEventListener("keydown", e => {
@@ -1837,7 +1848,8 @@
 
   window.addEventListener("pageshow", () => {
     lastFrame = performance.now();
-    renderDirty = true;
+    renderDirty = gameState !== "start";
+    if (renderDirty || gameState === "playing") ensureFrameLoop();
   });
 
   window.addEventListener("beforeunload", () => {
@@ -1886,6 +1898,5 @@
   renderJournal();
   updateInventoryUI();
   refreshContinueButton();
-  requestAnimationFrame(frame);
 
 })();
