@@ -141,13 +141,18 @@ test("gameplay feedback layers are separate from persistent HUD and respect redu
   assert.ok(banner > playfield && banner < bottom);
   assert.ok(kicker > banner && text > kicker);
 
-  assert.match(css, /#danger-vignette[sS]*pointer-events:s*none/);
-  assert.match(css, /#event-banner[sS]*pointer-events:s*none/);
-  assert.match(css, /prefers-reduced-motion:s*reduce/);
+  const dangerCss = css.indexOf("#danger-vignette");
+  const bannerCss = css.indexOf("#event-banner");
+  const suspicionCss = css.indexOf(".suspicion-card.warning");
+  assert.ok(dangerCss >= 0 && bannerCss > dangerCss);
+  assert.ok(css.slice(dangerCss, bannerCss).includes("pointer-events: none"));
+  assert.ok(suspicionCss > bannerCss);
+  assert.ok(css.slice(bannerCss, suspicionCss).includes("pointer-events: none"));
+  assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"));
 
-  assert.match(gameSource, /showEventBanner("발각 임박"/);
-  assert.match(gameSource, /audio.chase()/);
-  assert.match(gameSource, /"시야 이탈"/);
-  assert.match(gameSource, /showEventBanner("핵심 단서"/);
-  assert.match(gameSource, /showEventBanner("원본 확보"/);
+  assert.ok(gameSource.includes('showEventBanner("발각 임박"'));
+  assert.ok(gameSource.includes("audio.chase()"));
+  assert.ok(gameSource.includes('"시야 이탈"'));
+  assert.ok(gameSource.includes('showEventBanner("핵심 단서"'));
+  assert.ok(gameSource.includes('showEventBanner("원본 확보"'));
 });
