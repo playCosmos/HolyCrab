@@ -505,6 +505,7 @@
     autosaveTimer = 8;
     ui.pause.classList.add("hidden");
     ui.result.classList.add("hidden");
+    ui.result.classList.remove("mission-clear");
     loadStage(0, false);
     updateInventoryUI();
 
@@ -707,9 +708,10 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
-      audio.pickup();
+      audio.clue();
       saveSession();
-      showToast(`핵심 기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
+      showEventBanner("핵심 단서", `${obj.title} · ${stageClueCount()}/${clueDefs.length}`, "clue", 1.45, 2);
+      showToast(`핵심 기록 확보 · ${obj.text}`, 3.2);
       return;
     }
 
@@ -719,7 +721,8 @@
       renderJournal();
       audio.pickup();
       saveSession();
-      showToast(`쓸모없는 기록 · ${obj.title}: ${obj.text}`, 3.0);
+      showEventBanner("혼선 기록", `${obj.title} · 진행과 무관`, "neutral", 1.15, 1);
+      showToast(`쓸모없는 기록 · ${obj.text}`, 3.0);
       return;
     }
 
@@ -732,7 +735,8 @@
       player.actionLock = .25;
       pickedItems[obj.id] = true;
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
-      audio.pickup();
+      audio.item();
+      showEventBanner("아이템 획득", `${obj.title} · ${inventory[obj.type]}/${capacity}`, "item", 1.35, 2);
       const detail = obj.type === "binding"
         ? (stage.sisterActive
           ? "1번 키로 가까운 엄마나 언니 한 명을 잠시 묶어둘 수 있다."
@@ -782,18 +786,22 @@
       } else {
         player.actionLock = .8;
         hasRecipe = true;
-        audio.success();
         if (stage.finalEscapeNoise) {
+          audio.finale();
           emitNoise(safe, stage.finalEscapeNoise, true, true);
           for (const watcher of watchers) {
             watcher.brain.alertness = C.clamp(watcher.brain.alertness + .12, 0, 1);
           }
+          showEventBanner("원본 확보", "소리가 났다 · 현관까지 최종 탈출", "escape", 2.25, 5);
+        } else {
+          audio.success();
+          showEventBanner("목표 확보", "원본 레시피를 손에 넣었다", "clue", 1.7, 3);
         }
         saveSession();
         showToast(
           stage.finalEscapeNoise
-            ? "원본을 꺼내는 소리가 났다. 엄마와 언니가 반응했다 — 현관까지 빠져나가자."
-            : "원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.",
+            ? "엄마와 언니가 반응했다. 숨지 말고 탈출 동선을 잡자."
+            : "이제 현관까지 들키지 않고 빠져나가자.",
           3
         );
       }
@@ -839,12 +847,16 @@
     }), () => {
       gameState = "result";
       ui.result.classList.remove("hidden");
+      ui.result.classList.remove("mission-clear");
+      void ui.result.offsetWidth;
+      ui.result.classList.add("mission-clear");
     }, { tone: "ending" });
   }
 
   function caughtBy(watcher) {
     caught += 1;
     freeze = 1.2;
+    resetPursuitFeedback();
     player.hidden = false;
     player.hideSpot = null;
     const retrySpawn = stage.retrySpawn || stage.spawn;
@@ -1294,19 +1306,44 @@
     ui.momState.textContent = mom
       ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
       : "엄마";
+
+    const momChasing = !!(mom && mom.boundTimer <= 0 && mom.brain.state === AI.STATES.CHASE);
+    const momWarning = !!(mom && mom.suspicion >= .55);
+    ui.momCard.classList.toggle("warning", momWarning && !momChasing);
+    ui.momCard.classList.toggle("chasing", momChasing);
+
     ui.sisterCard.classList.toggle("hidden", !sister);
     if (sister) {
       ui.sisterFill.style.width = `${Math.round(sister.suspicion * 100)}%`;
       ui.sisterState.textContent = sister.boundTimer > 0
         ? `묶임 ${sister.boundTimer.toFixed(1)}s`
         : AI.stateLabel(sister.brain.state).replace("엄마", "언니");
+      const sisterChasing = sister.boundTimer <= 0 && sister.brain.state === AI.STATES.CHASE;
+      ui.sisterCard.classList.toggle("warning", sister.suspicion >= .55 && !sisterChasing);
+      ui.sisterCard.classList.toggle("chasing", sisterChasing);
+    } else {
+      ui.sisterCard.classList.remove("warning", "chasing");
     }
+
+    const maxSuspicion = watchers.reduce((max, watcher) => Math.max(max, watcher.suspicion || 0), 0);
+    const anyChase = watchers.some(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE);
+    const danger = C.clamp(Math.max(maxSuspicion, anyChase ? .58 : 0), 0, 1);
+    ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
+    ui.dangerVignette.classList.toggle("warning", danger >= .55 && !anyChase);
+    ui.dangerVignette.classList.toggle("chase", anyChase);
   }
 
   function update(dt) {
     if (toastTimer > 0) {
       toastTimer -= dt;
       if (toastTimer <= 0) ui.toast.classList.remove("show");
+    }
+    if (eventBannerTimer > 0) {
+      eventBannerTimer -= dt;
+      if (eventBannerTimer <= 0) {
+        eventBannerPriority = 0;
+        ui.eventBanner.classList.remove("show");
+      }
     }
     if (gameState !== "playing") return;
 
@@ -1330,6 +1367,7 @@
     for (const watcher of watchers) {
       if (updateWatcher(watcher, dt)) break;
     }
+    if (gameState === "playing") updatePursuitFeedback();
     updateNoise(dt);
     updateMission();
     updatePrompt();
