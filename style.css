@@ -281,6 +281,24 @@ button:active { transform: translateY(0); }
 .stat b { display: block; font-size: 22px; color: #f4b27f; }
 .stat span { font-size: 11px; opacity: .7; }
 
+
+#result.mission-clear .result-panel {
+  animation: mission-clear-in .48s cubic-bezier(.2,.8,.2,1);
+}
+#result.mission-clear .result-rank,
+#result.mission-clear #result-rank {
+  animation: mission-rank-pop .58s cubic-bezier(.16,1.2,.3,1);
+}
+@keyframes mission-clear-in {
+  from { opacity: 0; transform: translateY(18px) scale(.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mission-rank-pop {
+  0% { transform: scale(.8); opacity: .2; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .day-kicker {
   color: #f2b37f;
   font-weight: 900;
@@ -823,5 +841,15 @@ button:active { transform: translateY(0); }
   .start-panel {
     width: min(94%, 620px);
     padding: 30px 22px 26px;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
   }
 }
