@@ -119,7 +119,7 @@
   let toastTimer = 0;
   let eventBannerTimer = 0;
   let eventBannerPriority = 0;
-  let previousChaseRoles = new Set();
+  let previousChaseMask = 0;
   let warningLatched = false;
   let footstepTimer = 0;
   let hudUpdateTimer = 0;
@@ -588,7 +588,7 @@
   }
 
   function resetPursuitFeedback() {
-    previousChaseRoles = new Set();
+    previousChaseMask = 0;
     warningLatched = false;
     if (ui.dangerVignette) {
       ui.dangerVignette.style.setProperty("--danger", "0");
@@ -599,24 +599,28 @@
   }
 
   function updatePursuitFeedback() {
-    const current = new Set(
-      watchers
-        .filter(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE)
-        .map(watcher => watcher.role)
-    );
-    const entered = [...current].filter(role => !previousChaseRoles.has(role));
-    const left = [...previousChaseRoles].filter(role => !current.has(role));
+    let currentMask = 0;
+    for (const watcher of watchers) {
+      if (watcher.boundTimer > 0 || watcher.brain.state !== AI.STATES.CHASE) continue;
+      currentMask |= watcher.role === "sister" ? 2 : 1;
+    }
 
-    if (entered.length) {
-      const names = entered.map(role => role === "sister" ? "언니" : "엄마").join("·");
+    const enteredMask = currentMask & ~previousChaseMask;
+    const leftMask = previousChaseMask & ~currentMask;
+
+    if (enteredMask) {
+      const names = [
+        enteredMask & 1 ? "엄마" : "",
+        enteredMask & 2 ? "언니" : ""
+      ].filter(Boolean).join("·");
       audio.chase();
       showEventBanner("추적 시작", `${names}가 라먀니를 쫓기 시작했다`, "danger", 1.25, 3);
-    } else if (left.length && current.size === 0) {
+    } else if (leftMask && currentMask === 0) {
       audio.evade();
       showEventBanner("시야 이탈", "추적 시야에서 벗어났다 · 주변 수색은 계속된다", "safe", 1.2, 1);
     }
 
-    previousChaseRoles = current;
+    previousChaseMask = currentMask;
   }
 
   function watcherHears(watcher, pos, baseRadius) {
