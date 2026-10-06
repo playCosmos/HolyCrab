@@ -989,7 +989,7 @@
       watcher.navTarget = { x: target.x, y: target.y };
       watcher.navResolvedTarget = plan.target;
       watcher.navExact = plan.exact;
-      watcher.navTimer = watcher.brain.state === AI.STATES.CHASE ? .18 : .62;
+      watcher.navTimer = watcher.brain.state === AI.STATES.CHASE ? .24 : 12;
 
       if (!watcher.navPath.length) {
         watcher.velocity.x = 0;
