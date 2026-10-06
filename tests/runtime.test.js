@@ -62,6 +62,30 @@ class FakeAudioContext {
   }
 }
 
+function createFakeCanvasContext(counters) {
+  const gradient = { addColorStop() {} };
+  return {
+    beginPath() {},
+    roundRect() {},
+    fill() {},
+    stroke() {},
+    save() {},
+    restore() {},
+    fillRect() {},
+    fillText() {},
+    moveTo() {},
+    lineTo() {},
+    arc() {},
+    translate() {},
+    rotate() {},
+    ellipse() {},
+    closePath() {},
+    quadraticCurveTo() {},
+    createRadialGradient() { return gradient; },
+    drawImage() { counters.drawImage += 1; }
+  };
+}
+
 function createStorage(backing) {
   return {
     getItem(key) { return backing.has(key) ? backing.get(key) : null; },
@@ -73,6 +97,10 @@ function createStorage(backing) {
 function createHarness(storageBacking = new Map()) {
   const elementListeners = new Map();
   const elements = new Map();
+  const counters = { drawImage: 0, staticCanvasCreated: 0, rafRequests: 0 };
+  let rafCallback = null;
+  let rafId = 0;
+  let currentNow = 1000;
 
   function makeElement(id) {
     const listeners = Object.create(null);
@@ -99,7 +127,8 @@ function createHarness(storageBacking = new Map()) {
       }
     };
     if (id === "game") {
-      element.getContext = () => ({});
+      const canvasContext = createFakeCanvasContext(counters);
+      element.getContext = () => canvasContext;
     }
     return element;
   }
@@ -127,13 +156,28 @@ function createHarness(storageBacking = new Map()) {
       if (!elements.has(id)) elements.set(id, makeElement(id));
       return elements.get(id);
     },
+    createElement(tagName) {
+      if (String(tagName).toLowerCase() !== "canvas") return makeElement("generated-" + tagName);
+      counters.staticCanvasCreated += 1;
+      const staticContext = createFakeCanvasContext(counters);
+      return {
+        width: 0,
+        height: 0,
+        getContext() { return staticContext; }
+      };
+    },
     addEventListener(type, handler) {
       (documentListeners[type] ||= []).push(handler);
     }
   };
 
-  const performance = { now: () => 1000 };
-  const requestAnimationFrame = () => 1;
+  const performance = { now: () => currentNow };
+  const requestAnimationFrame = callback => {
+    counters.rafRequests += 1;
+    rafCallback = callback;
+    rafId += 1;
+    return rafId;
+  };
   const localStorage = createStorage(storageBacking);
   const windowObject = {
     HolyCrabCore: Core,
@@ -192,13 +236,24 @@ function createHarness(storageBacking = new Map()) {
     for (const handler of documentListeners[type] || []) handler({ target: document });
   }
 
+  function stepFrame(now = currentNow + 16.6667) {
+    const callback = rafCallback;
+    assert.ok(callback, "no animation frame is pending");
+    rafCallback = null;
+    currentNow = now;
+    callback(now);
+  }
+
   return {
     elements,
     document,
     storageBacking,
+    counters,
     dispatchElement,
     dispatchWindow,
-    dispatchDocument
+    dispatchDocument,
+    stepFrame,
+    hasPendingFrame: () => typeof rafCallback === "function"
   };
 }
 
