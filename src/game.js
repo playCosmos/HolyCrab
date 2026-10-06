@@ -32,6 +32,7 @@
     missionLabel: document.getElementById("mission-label"),
     mission: document.getElementById("mission"),
     submission: document.getElementById("submission"),
+    momCard: document.getElementById("mom-suspicion-card"),
     momFill: document.getElementById("mom-suspicion-fill"),
     momState: document.getElementById("mom-state"),
     sisterCard: document.getElementById("sister-suspicion-card"),
@@ -40,6 +41,10 @@
     inventoryBinding: document.getElementById("inventory-binding"),
     inventoryCigarette: document.getElementById("inventory-cigarette"),
     boostStatus: document.getElementById("boost-status"),
+    dangerVignette: document.getElementById("danger-vignette"),
+    eventBanner: document.getElementById("event-banner"),
+    eventBannerKicker: document.getElementById("event-banner-kicker"),
+    eventBannerText: document.getElementById("event-banner-text"),
     prompt: document.getElementById("prompt"),
     toast: document.getElementById("toast"),
     journal: document.getElementById("journal"),
@@ -98,6 +103,10 @@
   let elapsed = 0;
   let freeze = 0;
   let toastTimer = 0;
+  let eventBannerTimer = 0;
+  let eventBannerPriority = 0;
+  let previousChaseRoles = new Set();
+  let warningLatched = false;
   let footstepTimer = 0;
   let autosaveTimer = 8;
   let noiseRings = [];
@@ -131,7 +140,17 @@
       } catch (_) {}
     }
     pickup() { this.tone(560,.09,.025); this.tone(820,.13,.028,"sine",.07); }
+    clue() { this.tone(620,.08,.022); this.tone(930,.16,.026,"triangle",.06); }
+    item() { this.tone(440,.07,.02,"triangle"); this.tone(660,.11,.025,"triangle",.06); }
     alert() { this.tone(180,.12,.045,"square"); this.tone(145,.16,.035,"square",.12); }
+    warning() { this.tone(285,.07,.025,"square"); this.tone(330,.09,.022,"square",.07); }
+    chase() { this.tone(210,.09,.035,"sawtooth"); this.tone(255,.11,.032,"sawtooth",.08); }
+    evade() { this.tone(330,.08,.018,"triangle"); this.tone(440,.12,.018,"triangle",.07); }
+    finale() {
+      this.tone(155,.16,.045,"square");
+      this.tone(196,.18,.04,"square",.13);
+      this.tone(247,.24,.034,"sawtooth",.26);
+    }
     success() { this.tone(523,.12,.03); this.tone(659,.12,.03,"sine",.1); this.tone(784,.2,.03,"sine",.2); }
     stage() { this.tone(392,.10,.022); this.tone(523,.12,.026,"triangle",.08); }
     click() { this.tone(360,.05,.018,"triangle"); }
@@ -269,6 +288,11 @@
     renderJournal();
     updateMission();
     updateSuspicionUI();
+    if (saved.hasRecipe && stage.finalEscapeNoise) {
+      showEventBanner("최종 탈출", "원본 확보 상태 · 추적자 반응 재개", "escape", 2.1, 5);
+    } else {
+      showEventBanner(`DAY ${stage.day}`, `${stage.name} · 이어하기`, "day", 1.45, 2);
+    }
     showToast(
       saved.hasRecipe && stage.finalEscapeNoise
         ? "원본 확보 직후부터 재개 · 소리를 들은 엄마와 언니가 다시 움직인다."
@@ -440,6 +464,7 @@
     coughTimer = 0;
     coughPending = false;
     noiseRings = [];
+    resetPursuitFeedback();
     ui.journal.classList.add("hidden");
     renderJournal();
     updateMission();
@@ -452,7 +477,8 @@
         gameState = "playing";
         autosaveTimer = 8;
         saveSession();
-        showToast(`DAY ${stage.day} · 오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
+        showEventBanner(`DAY ${stage.day}`, `${stage.name} · ${stage.layoutName || "잠입 시작"}`, "day", 1.8, 2);
+        showToast(`오늘의 아이템 1개가 맵 어딘가에 놓여 있다.`, 2.2);
       });
     } else {
       gameState = "playing";
@@ -486,6 +512,7 @@
     autosaveTimer = 8;
     ui.pause.classList.add("hidden");
     ui.result.classList.add("hidden");
+    ui.result.classList.remove("mission-clear");
     loadStage(0, false);
     updateInventoryUI();
 
@@ -494,7 +521,8 @@
       showVN(Story.dayIntro(stage), () => {
         gameState = "playing";
         saveSession();
-        showToast("DAY 1 · 첫 작전을 시작한다.", 2.2);
+        showEventBanner("DAY 1", `${stage.name} · 첫 잠입 시작`, "day", 1.8, 2);
+        showToast("첫 작전을 시작한다.", 2.2);
       });
     });
   }
@@ -526,6 +554,49 @@
     ui.toast.textContent = text;
     ui.toast.classList.add("show");
     toastTimer = seconds;
+  }
+
+  function showEventBanner(kicker, text, kind = "neutral", seconds = 1.5, priority = 1) {
+    if (eventBannerTimer > 0 && priority < eventBannerPriority) return false;
+    ui.eventBannerKicker.textContent = kicker || "";
+    ui.eventBannerText.textContent = text || "";
+    ui.eventBanner.dataset.kind = kind;
+    ui.eventBanner.classList.add("show");
+    eventBannerTimer = seconds;
+    eventBannerPriority = priority;
+    return true;
+  }
+
+  function resetPursuitFeedback() {
+    previousChaseRoles = new Set();
+    warningLatched = false;
+    if (ui.dangerVignette) {
+      ui.dangerVignette.style.setProperty("--danger", "0");
+      ui.dangerVignette.classList.remove("warning", "chase");
+    }
+    if (ui.momCard) ui.momCard.classList.remove("warning", "chasing");
+    if (ui.sisterCard) ui.sisterCard.classList.remove("warning", "chasing");
+  }
+
+  function updatePursuitFeedback() {
+    const current = new Set(
+      watchers
+        .filter(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE)
+        .map(watcher => watcher.role)
+    );
+    const entered = [...current].filter(role => !previousChaseRoles.has(role));
+    const left = [...previousChaseRoles].filter(role => !current.has(role));
+
+    if (entered.length) {
+      const names = entered.map(role => role === "sister" ? "언니" : "엄마").join("·");
+      audio.chase();
+      showEventBanner("추적 시작", `${names}가 라먀니를 쫓기 시작했다`, "danger", 1.25, 3);
+    } else if (left.length && current.size === 0) {
+      audio.evade();
+      showEventBanner("시야 이탈", "추적 시야에서 벗어났다 · 주변 수색은 계속된다", "safe", 1.2, 1);
+    }
+
+    previousChaseRoles = current;
   }
 
   function watcherHears(watcher, pos, baseRadius) {
@@ -645,9 +716,10 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
-      audio.pickup();
+      audio.clue();
       saveSession();
-      showToast(`핵심 기록 확보 · ${obj.title}: ${obj.text}`, 3.2);
+      showEventBanner("핵심 단서", `${obj.title} · ${stageClueCount()}/${clueDefs.length}`, "clue", 1.45, 2);
+      showToast(`핵심 기록 확보 · ${obj.text}`, 3.2);
       return;
     }
 
@@ -657,7 +729,8 @@
       renderJournal();
       audio.pickup();
       saveSession();
-      showToast(`쓸모없는 기록 · ${obj.title}: ${obj.text}`, 3.0);
+      showEventBanner("혼선 기록", `${obj.title} · 진행과 무관`, "neutral", 1.15, 1);
+      showToast(`쓸모없는 기록 · ${obj.text}`, 3.0);
       return;
     }
 
@@ -670,7 +743,8 @@
       player.actionLock = .25;
       pickedItems[obj.id] = true;
       inventory[obj.type] = (inventory[obj.type] || 0) + 1;
-      audio.pickup();
+      audio.item();
+      showEventBanner("아이템 획득", `${obj.title} · ${inventory[obj.type]}/${capacity}`, "item", 1.35, 2);
       const detail = obj.type === "binding"
         ? (stage.sisterActive
           ? "1번 키로 가까운 엄마나 언니 한 명을 잠시 묶어둘 수 있다."
@@ -720,18 +794,22 @@
       } else {
         player.actionLock = .8;
         hasRecipe = true;
-        audio.success();
         if (stage.finalEscapeNoise) {
+          audio.finale();
           emitNoise(safe, stage.finalEscapeNoise, true, true);
           for (const watcher of watchers) {
             watcher.brain.alertness = C.clamp(watcher.brain.alertness + .12, 0, 1);
           }
+          showEventBanner("원본 확보", "소리가 났다 · 현관까지 최종 탈출", "escape", 2.25, 5);
+        } else {
+          audio.success();
+          showEventBanner("목표 확보", "원본 레시피를 손에 넣었다", "clue", 1.7, 3);
         }
         saveSession();
         showToast(
           stage.finalEscapeNoise
-            ? "원본을 꺼내는 소리가 났다. 엄마와 언니가 반응했다 — 현관까지 빠져나가자."
-            : "원본 레시피를 손에 넣었다. 이제 현관까지 들키지 않고 빠져나가자.",
+            ? "엄마와 언니가 반응했다. 숨지 말고 탈출 동선을 잡자."
+            : "이제 현관까지 들키지 않고 빠져나가자.",
           3
         );
       }
@@ -777,12 +855,16 @@
     }), () => {
       gameState = "result";
       ui.result.classList.remove("hidden");
+      ui.result.classList.remove("mission-clear");
+      void ui.result.offsetWidth;
+      ui.result.classList.add("mission-clear");
     }, { tone: "ending" });
   }
 
   function caughtBy(watcher) {
     caught += 1;
     freeze = 1.2;
+    resetPursuitFeedback();
     player.hidden = false;
     player.hideSpot = null;
     const retrySpawn = stage.retrySpawn || stage.spawn;
@@ -1232,19 +1314,53 @@
     ui.momState.textContent = mom
       ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
       : "엄마";
+
+    const momChasing = !!(mom && mom.boundTimer <= 0 && mom.brain.state === AI.STATES.CHASE);
+    const momWarning = !!(mom && mom.suspicion >= .55);
+    ui.momCard.classList.toggle("warning", momWarning && !momChasing);
+    ui.momCard.classList.toggle("chasing", momChasing);
+
     ui.sisterCard.classList.toggle("hidden", !sister);
     if (sister) {
       ui.sisterFill.style.width = `${Math.round(sister.suspicion * 100)}%`;
       ui.sisterState.textContent = sister.boundTimer > 0
         ? `묶임 ${sister.boundTimer.toFixed(1)}s`
         : AI.stateLabel(sister.brain.state).replace("엄마", "언니");
+      const sisterChasing = sister.boundTimer <= 0 && sister.brain.state === AI.STATES.CHASE;
+      ui.sisterCard.classList.toggle("warning", sister.suspicion >= .55 && !sisterChasing);
+      ui.sisterCard.classList.toggle("chasing", sisterChasing);
+    } else {
+      ui.sisterCard.classList.remove("warning", "chasing");
     }
+
+    const maxSuspicion = watchers.reduce((max, watcher) => Math.max(max, watcher.suspicion || 0), 0);
+    const anyChase = watchers.some(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE);
+    const danger = C.clamp(Math.max(maxSuspicion, anyChase ? .58 : 0), 0, 1);
+
+    if (maxSuspicion >= .72 && !warningLatched) {
+      warningLatched = true;
+      audio.warning();
+      showEventBanner("발각 임박", "의심도가 높다 · 즉시 시야를 끊자", "danger", 1.0, 4);
+    } else if (maxSuspicion <= .45) {
+      warningLatched = false;
+    }
+
+    ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
+    ui.dangerVignette.classList.toggle("warning", danger >= .55 && !anyChase);
+    ui.dangerVignette.classList.toggle("chase", anyChase);
   }
 
   function update(dt) {
     if (toastTimer > 0) {
       toastTimer -= dt;
       if (toastTimer <= 0) ui.toast.classList.remove("show");
+    }
+    if (eventBannerTimer > 0) {
+      eventBannerTimer -= dt;
+      if (eventBannerTimer <= 0) {
+        eventBannerPriority = 0;
+        ui.eventBanner.classList.remove("show");
+      }
     }
     if (gameState !== "playing") return;
 
@@ -1268,6 +1384,7 @@
     for (const watcher of watchers) {
       if (updateWatcher(watcher, dt)) break;
     }
+    if (gameState === "playing") updatePursuitFeedback();
     updateNoise(dt);
     updateMission();
     updatePrompt();

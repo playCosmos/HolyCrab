@@ -83,7 +83,9 @@ function createHarness(storageBacking = new Map()) {
       tagName: id.endsWith("-btn") ? "BUTTON" : "DIV",
       classList: new FakeClassList(initiallyHidden ? ["hidden"] : []),
       dataset: Object.create(null),
-      style: Object.create(null),
+      style: {
+        setProperty(name, value) { this[name] = String(value); }
+      },
       textContent: "",
       innerHTML: "",
       src: "",
@@ -108,7 +110,9 @@ function createHarness(storageBacking = new Map()) {
     "vn-text", "vn-meta", "vn-next", "mission-label", "mission", "submission",
     "mom-suspicion-fill", "mom-state", "sister-suspicion-card",
     "sister-suspicion-fill", "sister-state", "inventory-binding",
-    "inventory-cigarette", "boost-status", "prompt", "toast", "journal",
+    "inventory-cigarette", "boost-status", "danger-vignette",
+    "event-banner", "event-banner-kicker", "event-banner-text",
+    "prompt", "toast", "journal",
     "journal-body", "pause", "pause-reason", "resume-btn", "pause-title-btn",
     "result", "result-title", "result-text", "result-rank", "result-time",
     "result-caught", "restart-btn"
@@ -212,6 +216,9 @@ test("actual game runtime reaches play, pauses, saves, and restores", () => {
   for (let i = 0; i < 8; i += 1) first.dispatchElement("vn-next");
   assert.equal(first.elements.get("vn-scene").classList.contains("hidden"), true);
   assert.equal(storage.has(Session.STORAGE_KEY), true);
+  assert.equal(first.elements.get("event-banner").classList.contains("show"), true);
+  assert.match(first.elements.get("event-banner-kicker").textContent, /^DAY 1$/);
+  assert.match(first.elements.get("event-banner-text").textContent, /첫 잠입 시작/);
 
   first.dispatchWindow("keydown", { code: "Escape" });
   assert.equal(first.elements.get("pause").classList.contains("hidden"), false);
@@ -284,4 +291,6 @@ test("final recipe save resumes inside the escape beat instead of a safe shortcu
 
   assert.match(harness.elements.get("toast").textContent, /원본 확보 직후부터 재개/);
   assert.match(harness.elements.get("mission").textContent, /현관으로 최종 탈출/);
+  assert.equal(harness.elements.get("event-banner").dataset.kind, "escape");
+  assert.match(harness.elements.get("event-banner-text").textContent, /추적자 반응 재개/);
 });

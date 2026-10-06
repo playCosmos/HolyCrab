@@ -122,3 +122,37 @@ test("game waits on a neutral start screen before showing VN dialogue", () => {
   assert.match(gameSource, /resumeSavedCampaign\(\)/);
   assert.doesNotMatch(gameSource, /\n\s*startCampaign\(\);\n\s*renderJournal\(\);/);
 });
+
+
+test("gameplay feedback layers are separate from persistent HUD and respect reduced motion", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "style.css"), "utf8");
+  const gameSource = fs.readFileSync(path.join(__dirname, "..", "src", "game.js"), "utf8");
+
+  const playfield = html.indexOf('id="playfield"');
+  const danger = html.indexOf('id="danger-vignette"');
+  const banner = html.indexOf('id="event-banner"');
+  const kicker = html.indexOf('id="event-banner-kicker"');
+  const text = html.indexOf('id="event-banner-text"');
+  const bottom = html.indexOf('id="bottom-status-bar"');
+
+  assert.ok(playfield >= 0);
+  assert.ok(danger > playfield && danger < bottom);
+  assert.ok(banner > playfield && banner < bottom);
+  assert.ok(kicker > banner && text > kicker);
+
+  const dangerCss = css.indexOf("#danger-vignette");
+  const bannerCss = css.indexOf("#event-banner");
+  const suspicionCss = css.indexOf(".suspicion-card.warning");
+  assert.ok(dangerCss >= 0 && bannerCss > dangerCss);
+  assert.ok(css.slice(dangerCss, bannerCss).includes("pointer-events: none"));
+  assert.ok(suspicionCss > bannerCss);
+  assert.ok(css.slice(bannerCss, suspicionCss).includes("pointer-events: none"));
+  assert.ok(css.includes("@media (prefers-reduced-motion: reduce)"));
+
+  assert.ok(gameSource.includes('showEventBanner("발각 임박"'));
+  assert.ok(gameSource.includes("audio.chase()"));
+  assert.ok(gameSource.includes('"시야 이탈"'));
+  assert.ok(gameSource.includes('showEventBanner("핵심 단서"'));
+  assert.ok(gameSource.includes('showEventBanner("원본 확보"'));
+});
