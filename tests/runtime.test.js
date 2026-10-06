@@ -349,3 +349,33 @@ test("final recipe save resumes inside the escape beat instead of a safe shortcu
   assert.equal(harness.elements.get("event-banner").dataset.kind, "escape");
   assert.match(harness.elements.get("event-banner-text").textContent, /추적자 반응 재개/);
 });
+
+
+test("frame loop sleeps outside active play and static stage rendering is cached", () => {
+  const harness = createHarness(new Map());
+
+  assert.equal(harness.hasPendingFrame(), false);
+  assert.equal(harness.counters.staticCanvasCreated, 0);
+
+  harness.dispatchElement("start-btn");
+  assert.equal(harness.counters.staticCanvasCreated, 1);
+  assert.equal(harness.hasPendingFrame(), true);
+
+  harness.stepFrame(1016.7);
+  assert.equal(harness.hasPendingFrame(), false);
+  assert.ok(harness.counters.drawImage >= 1);
+
+  for (let i = 0; i < 8; i += 1) harness.dispatchElement("vn-next");
+  assert.equal(harness.hasPendingFrame(), true);
+
+  harness.stepFrame(1033.4);
+  assert.equal(harness.hasPendingFrame(), true);
+
+  harness.dispatchWindow("keydown", { code: "Escape" });
+  harness.stepFrame(1050.1);
+  assert.equal(harness.hasPendingFrame(), false);
+
+  harness.dispatchElement("resume-btn");
+  assert.equal(harness.hasPendingFrame(), true);
+  assert.equal(harness.counters.staticCanvasCreated, 1);
+});
