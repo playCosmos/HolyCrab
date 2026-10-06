@@ -369,11 +369,15 @@ test("every generated stage keeps clues, daily item, safe, and exit interactable
       const expectedTargets = [
         ...stage.clues.map(target => target.id),
         ...stage.items.map(target => target.id),
-        ...(stage.safe ? ["safe-0"] : []),
-        "exit-0"
+        ...(stage.safe ? ["safe"] : []),
+        "exit"
       ];
-      assert.ok(Object.keys(result.fromSpawn).length >= expectedTargets.length);
-      assert.ok(Object.keys(result.fromRetry).length >= expectedTargets.length);
+      for (const targetKey of expectedTargets) {
+        assert.ok(result.fromSpawn[targetKey], `${stage.id}: spawn missing approach for ${targetKey}`);
+        assert.ok(result.fromRetry[targetKey], `${stage.id}: retry missing approach for ${targetKey}`);
+        assert.ok(result.fromSpawn[targetKey].distanceToTarget <= 72);
+        assert.ok(result.fromRetry[targetKey].distanceToTarget <= 72);
+      }
     }
   }
 });
