@@ -384,6 +384,7 @@
     vnLines = [];
     vnIndex = 0;
     if (done) done();
+    if (gameState === "playing" || renderDirty) ensureFrameLoop();
   }
 
   function makeWatcher(role, spawn, patrol, config, color, inheritedAlert) {
