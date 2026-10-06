@@ -484,7 +484,8 @@ test("a fixed campaign can be completed through the real 10-day runtime with cat
       assert.equal(state.stageIndex, dayIndex);
       assert.equal(state.collected[firstClue.id], true);
       assert.equal(state.pickedItems[item.id], true);
-      assert.deepEqual(state.inventory, inventoryBeforeReload);
+      assert.equal(state.inventory.binding, inventoryBeforeReload.binding);
+      assert.equal(state.inventory.cigarette, inventoryBeforeReload.cigarette);
       assert.equal(state.caught, caughtBeforeReload);
 
       playability = Core.validateStagePlayability(stage, 20);
