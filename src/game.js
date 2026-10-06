@@ -465,6 +465,9 @@
     });
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
+    const exitHorizontalDistance = Math.min(exitDoor.x, W - exitDoor.x);
+    const exitVerticalDistance = Math.min(exitDoor.y, H - exitDoor.y);
+    exitDoor.vertical = exitHorizontalDistance <= exitVerticalDistance;
 
     player.x = stage.spawn.x;
     player.y = stage.spawn.y;
@@ -650,6 +653,7 @@
   }
 
   function emitNoise(pos, baseRadius, strong = false, splitWatchers = false) {
+    if (noiseRings.length >= 24) noiseRings.splice(0, noiseRings.length - 23);
     noiseRings.push({ x: pos.x, y: pos.y, radius: 8, max: baseRadius, life: .8 });
 
     let primary = null;
@@ -1301,11 +1305,12 @@
   }
 
   function updateNoise(dt) {
-    noiseRings = noiseRings.filter(r => {
-      r.life -= dt;
-      r.radius += (r.max - r.radius) * Math.min(1, dt * 5);
-      return r.life > 0;
-    });
+    for (let i = noiseRings.length - 1; i >= 0; i -= 1) {
+      const ring = noiseRings[i];
+      ring.life -= dt;
+      ring.radius += (ring.max - ring.radius) * Math.min(1, dt * 5);
+      if (ring.life <= 0) noiseRings.splice(i, 1);
+    }
   }
 
   function updateMission() {
@@ -1546,15 +1551,17 @@
 
   function drawInteractables() {
     const pulse = .5 + .5 * Math.sin(performance.now() / 280);
-    for (const c of [...clueDefs, ...decoyDefs]) {
-      if (collected[c.id]) continue;
+    const drawEvidenceMarker = c => {
+      if (collected[c.id]) return;
       ctx.save();
       ctx.translate(c.x, c.y);
       ctx.rotate(Math.PI / 4);
       ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
       ctx.fillRect(-7, -7, 14, 14);
       ctx.restore();
-    }
+    };
+    for (const c of clueDefs) drawEvidenceMarker(c);
+    for (const c of decoyDefs) drawEvidenceMarker(c);
 
     for (const item of itemDefs) {
       if (pickedItems[item.id]) continue;
@@ -1597,14 +1604,7 @@
     const exitColor = exitReady
       ? (stage.palette.exitReady || "#9fd68a")
       : (stage.palette.exitLocked || "rgba(244,210,158,.62)");
-    const edgeDistances = {
-      left: exitDoor.x,
-      right: W - exitDoor.x,
-      top: exitDoor.y,
-      bottom: H - exitDoor.y
-    };
-    const nearestEdge = Object.entries(edgeDistances).sort((a, b) => a[1] - b[1])[0][0];
-    const verticalExit = nearestEdge === "left" || nearestEdge === "right";
+    const verticalExit = exitDoor.vertical;
 
     ctx.save();
     ctx.lineCap = "round";
