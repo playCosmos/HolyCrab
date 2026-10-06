@@ -106,6 +106,7 @@
   let eventBannerTimer = 0;
   let eventBannerPriority = 0;
   let previousChaseRoles = new Set();
+  let dangerFeedbackTier = 0;
   let footstepTimer = 0;
   let autosaveTimer = 8;
   let noiseRings = [];
@@ -142,6 +143,7 @@
     clue() { this.tone(620,.08,.022); this.tone(930,.16,.026,"triangle",.06); }
     item() { this.tone(440,.07,.02,"triangle"); this.tone(660,.11,.025,"triangle",.06); }
     alert() { this.tone(180,.12,.045,"square"); this.tone(145,.16,.035,"square",.12); }
+    warning() { this.tone(285,.07,.025,"square"); this.tone(330,.09,.022,"square",.07); }
     chase() { this.tone(210,.09,.035,"sawtooth"); this.tone(255,.11,.032,"sawtooth",.08); }
     evade() { this.tone(330,.08,.018,"triangle"); this.tone(440,.12,.018,"triangle",.07); }
     finale() {
@@ -286,6 +288,11 @@
     renderJournal();
     updateMission();
     updateSuspicionUI();
+    if (saved.hasRecipe && stage.finalEscapeNoise) {
+      showEventBanner("최종 탈출", "원본 확보 상태 · 추적자 반응 재개", "escape", 2.1, 5);
+    } else {
+      showEventBanner(`DAY ${stage.day}`, `${stage.name} · 이어하기`, "day", 1.45, 2);
+    }
     showToast(
       saved.hasRecipe && stage.finalEscapeNoise
         ? "원본 확보 직후부터 재개 · 소리를 들은 엄마와 언니가 다시 움직인다."
@@ -562,6 +569,7 @@
 
   function resetPursuitFeedback() {
     previousChaseRoles = new Set();
+    dangerFeedbackTier = 0;
     if (ui.dangerVignette) {
       ui.dangerVignette.style.setProperty("--danger", "0");
       ui.dangerVignette.classList.remove("warning", "chase");
@@ -1328,6 +1336,21 @@
     const maxSuspicion = watchers.reduce((max, watcher) => Math.max(max, watcher.suspicion || 0), 0);
     const anyChase = watchers.some(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE);
     const danger = C.clamp(Math.max(maxSuspicion, anyChase ? .58 : 0), 0, 1);
+
+    if (anyChase) {
+      dangerFeedbackTier = 2;
+    } else if (maxSuspicion >= .72) {
+      if (dangerFeedbackTier === 0) {
+        audio.warning();
+        showEventBanner("발각 임박", "시야를 끊거나 즉시 엄폐하자", "danger", 1.0, 3);
+      }
+      dangerFeedbackTier = 1;
+    } else if (maxSuspicion <= .45) {
+      dangerFeedbackTier = 0;
+    } else if (dangerFeedbackTier === 2) {
+      dangerFeedbackTier = 1;
+    }
+
     ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
     ui.dangerVignette.classList.toggle("warning", danger >= .55 && !anyChase);
     ui.dangerVignette.classList.toggle("chase", anyChase);
