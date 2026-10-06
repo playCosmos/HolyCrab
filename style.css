@@ -90,6 +90,7 @@ kbd {
 
 #prompt {
   position: absolute;
+  z-index: 12;
   left: 50%;
   bottom: 70px;
   transform: translateX(-50%);
@@ -106,7 +107,8 @@ kbd {
 
 #toast {
   position: absolute;
-  top: 100px;
+  z-index: 13;
+  top: 92px;
   left: 50%;
   transform: translate(-50%, -10px);
   background: rgba(28, 21, 28, .93);
@@ -126,7 +128,7 @@ kbd {
   --danger: 0;
   position: absolute;
   inset: 0;
-  z-index: 9;
+  z-index: 5;
   pointer-events: none;
   opacity: calc(var(--danger) * .9);
   background:
@@ -148,7 +150,7 @@ kbd {
 #event-banner {
   position: absolute;
   left: 50%;
-  top: 13%;
+  top: 20px;
   z-index: 14;
   min-width: 260px;
   max-width: min(620px, 74%);
