@@ -450,6 +450,10 @@
     if (!navigationValidation.ok) {
       throw new Error(`Invalid navigation ${stage.id}: ${navigationValidation.reason}`);
     }
+    const playabilityValidation = C.validateStagePlayability(stage, 24);
+    if (!playabilityValidation.ok) {
+      throw new Error(`Invalid player progression ${stage.id}: ${playabilityValidation.reason}`);
+    }
 
     walls = stage.walls.map(x => ({ ...x }));
     furniture = stage.furniture.map(x => ({ ...x }));
