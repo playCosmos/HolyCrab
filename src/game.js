@@ -1905,4 +1905,47 @@
   updateInventoryUI();
   refreshContinueButton();
 
+  if (window.__HOLYCRAB_TEST__ === true) {
+    window.__HolyCrabTestHooks = Object.freeze({
+      snapshot() {
+        return {
+          gameState,
+          stageIndex,
+          stageId: stage && stage.id,
+          day: stage && stage.day,
+          totalDays: stage && stage.totalDays,
+          seedInput: campaignSeedInput,
+          collected: { ...collected },
+          pickedItems: { ...pickedItems },
+          usedDistractions: { ...usedDistractions },
+          inventory: { ...inventory },
+          hasRecipe,
+          caught,
+          runCompleted
+        };
+      },
+      teleportPlayer(point) {
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+          throw new Error("teleportPlayer requires a finite point");
+        }
+        player.x = point.x;
+        player.y = point.y;
+        player.hidden = false;
+        player.hideSpot = null;
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+        renderDirty = true;
+      },
+      clearActionLock() {
+        player.actionLock = 0;
+        freeze = 0;
+      },
+      triggerCaught(role = "mom") {
+        const watcher = watchers.find(candidate => candidate.role === role) || watchers[0];
+        if (!watcher) throw new Error("no watcher available");
+        caughtBy(watcher);
+      }
+    });
+  }
+
 })();
