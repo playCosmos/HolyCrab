@@ -1343,27 +1343,36 @@
   function updateSuspicionUI() {
     const mom = watchers.find(w => w.role === "mom");
     const sister = watchers.find(w => w.role === "sister");
-    ui.momFill.style.width = `${Math.round((mom ? mom.suspicion : 0) * 100)}%`;
-    ui.momState.textContent = mom
-      ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
-      : "엄마";
+
+    const momWidth = `${Math.round((mom ? mom.suspicion : 0) * 100)}%`;
+    setStyleIfChanged(ui.momFill, "width", momWidth);
+    setTextIfChanged(
+      ui.momState,
+      mom
+        ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
+        : "엄마"
+    );
 
     const momChasing = !!(mom && mom.boundTimer <= 0 && mom.brain.state === AI.STATES.CHASE);
     const momWarning = !!(mom && mom.suspicion >= .55);
-    ui.momCard.classList.toggle("warning", momWarning && !momChasing);
-    ui.momCard.classList.toggle("chasing", momChasing);
+    setClassState(ui.momCard, "warning", momWarning && !momChasing);
+    setClassState(ui.momCard, "chasing", momChasing);
 
-    ui.sisterCard.classList.toggle("hidden", !sister);
+    setClassState(ui.sisterCard, "hidden", !sister);
     if (sister) {
-      ui.sisterFill.style.width = `${Math.round(sister.suspicion * 100)}%`;
-      ui.sisterState.textContent = sister.boundTimer > 0
-        ? `묶임 ${sister.boundTimer.toFixed(1)}s`
-        : AI.stateLabel(sister.brain.state).replace("엄마", "언니");
+      setStyleIfChanged(ui.sisterFill, "width", `${Math.round(sister.suspicion * 100)}%`);
+      setTextIfChanged(
+        ui.sisterState,
+        sister.boundTimer > 0
+          ? `묶임 ${sister.boundTimer.toFixed(1)}s`
+          : AI.stateLabel(sister.brain.state).replace("엄마", "언니")
+      );
       const sisterChasing = sister.boundTimer <= 0 && sister.brain.state === AI.STATES.CHASE;
-      ui.sisterCard.classList.toggle("warning", sister.suspicion >= .55 && !sisterChasing);
-      ui.sisterCard.classList.toggle("chasing", sisterChasing);
+      setClassState(ui.sisterCard, "warning", sister.suspicion >= .55 && !sisterChasing);
+      setClassState(ui.sisterCard, "chasing", sisterChasing);
     } else {
-      ui.sisterCard.classList.remove("warning", "chasing");
+      setClassState(ui.sisterCard, "warning", false);
+      setClassState(ui.sisterCard, "chasing", false);
     }
 
     const maxSuspicion = watchers.reduce((max, watcher) => Math.max(max, watcher.suspicion || 0), 0);
@@ -1378,9 +1387,13 @@
       warningLatched = false;
     }
 
-    ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
-    ui.dangerVignette.classList.toggle("warning", danger >= .55 && !anyChase);
-    ui.dangerVignette.classList.toggle("chase", anyChase);
+    const dangerValue = danger.toFixed(3);
+    if (ui.dangerVignette.dataset.dangerValue !== dangerValue) {
+      ui.dangerVignette.dataset.dangerValue = dangerValue;
+      ui.dangerVignette.style.setProperty("--danger", dangerValue);
+    }
+    setClassState(ui.dangerVignette, "warning", danger >= .55 && !anyChase);
+    setClassState(ui.dangerVignette, "chase", anyChase);
   }
 
   function update(dt) {
