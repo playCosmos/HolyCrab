@@ -740,6 +740,7 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
+      updateMission();
       audio.clue();
       saveSession();
       showEventBanner("핵심 단서", `${obj.title} · ${stageClueCount()}/${clueDefs.length}`, "clue", 1.45, 2);
@@ -751,6 +752,7 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
+      updateMission();
       audio.pickup();
       saveSession();
       showEventBanner("혼선 기록", `${obj.title} · 진행과 무관`, "neutral", 1.15, 1);
@@ -829,6 +831,7 @@
           audio.success();
           showEventBanner("목표 확보", "원본 레시피를 손에 넣었다", "clue", 1.7, 3);
         }
+        updateMission();
         saveSession();
         showToast(
           stage.finalEscapeNoise
@@ -889,6 +892,7 @@
     caught += 1;
     freeze = 1.2;
     renderDirty = true;
+    updateMission();
     resetPursuitFeedback();
     player.hidden = false;
     player.hideSpot = null;
@@ -1399,19 +1403,23 @@
   function update(dt) {
     if (toastTimer > 0) {
       toastTimer -= dt;
-      if (toastTimer <= 0) ui.toast.classList.remove("show");
+      if (toastTimer <= 0) setClassState(ui.toast, "show", false);
     }
     if (eventBannerTimer > 0) {
       eventBannerTimer -= dt;
       if (eventBannerTimer <= 0) {
         eventBannerPriority = 0;
-        ui.eventBanner.classList.remove("show");
+        setClassState(ui.eventBanner, "show", false);
       }
     }
     if (gameState !== "playing") return;
 
     elapsed += dt;
     player.actionLock = Math.max(0, player.actionLock - dt);
+    hudUpdateTimer -= dt;
+    const refreshHud = hudUpdateTimer <= 0;
+    if (refreshHud) hudUpdateTimer = .05;
+
     autosaveTimer -= dt;
     if (autosaveTimer <= 0) {
       autosaveTimer = 8;
@@ -1419,9 +1427,10 @@
     }
     if (freeze > 0) {
       freeze -= dt;
-      updateMission();
-      updatePrompt();
-      updateSuspicionUI();
+      if (refreshHud) {
+        updatePrompt();
+        updateSuspicionUI();
+      }
       return;
     }
 
@@ -1432,9 +1441,10 @@
     }
     if (gameState === "playing") updatePursuitFeedback();
     updateNoise(dt);
-    updateMission();
-    updatePrompt();
-    updateSuspicionUI();
+    if (refreshHud) {
+      updatePrompt();
+      updateSuspicionUI();
+    }
   }
 
   function roundedRectOn(target, x, y, w, h, r, fill, stroke) {
