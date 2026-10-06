@@ -1692,8 +1692,11 @@
   }
 
   function draw() {
-    drawFloor();
-    drawWallsAndFurniture();
+    if (staticStageCanvas) ctx.drawImage(staticStageCanvas, 0, 0);
+    else {
+      drawFloor();
+      drawWallsAndFurniture();
+    }
     drawNoise();
     for (const watcher of watchers) drawWatcherVision(watcher);
     drawInteractables();
@@ -1710,7 +1713,10 @@
     const dt = Math.min(.035, (now - lastFrame) / 1000 || 0);
     lastFrame = now;
     update(dt);
-    if (gameState !== "start") draw();
+    if (gameState === "playing" || (gameState !== "start" && renderDirty)) {
+      draw();
+      renderDirty = false;
+    }
     requestAnimationFrame(frame);
   }
 
@@ -1744,6 +1750,15 @@
     if (document.hidden && gameState === "playing") {
       pauseGame("창이 비활성화되어 자동으로 일시정지되었습니다.");
     }
+  });
+
+  window.addEventListener("pagehide", () => {
+    if (gameState !== "start" && gameState !== "result") saveSession();
+  });
+
+  window.addEventListener("pageshow", () => {
+    lastFrame = performance.now();
+    renderDirty = true;
   });
 
   window.addEventListener("beforeunload", () => {
