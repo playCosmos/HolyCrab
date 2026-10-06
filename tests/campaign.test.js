@@ -353,3 +353,43 @@ test("finale uses its own lockdown layout with reduced safe resources", () => {
   assert.deepEqual(finale.hideSpots.map(item => item.id).sort(), ["home-island", "home-wardrobe"]);
   assert.deepEqual(finale.distractions.map(item => item.id).sort(), ["home-microwave", "home-tv"]);
 });
+
+
+test("every generated stage keeps clues, daily item, safe, and exit interactable from spawn and retry", () => {
+  for (let seedIndex = 0; seedIndex < 60; seedIndex += 1) {
+    const campaign = Campaign.generateCampaign("player-playability-" + seedIndex);
+    for (const stage of campaign.stages) {
+      const result = C.validateStagePlayability(stage, 24);
+      assert.equal(
+        result.ok,
+        true,
+        `${stage.id} / ${stage.layoutKey}: ${result.reason || "unreachable interaction"}`
+      );
+
+      const expectedTargets = [
+        ...stage.clues.map(target => target.id),
+        ...stage.items.map(target => target.id),
+        ...(stage.safe ? ["safe-0"] : []),
+        "exit-0"
+      ];
+      assert.ok(Object.keys(result.fromSpawn).length >= expectedTargets.length);
+      assert.ok(Object.keys(result.fromRetry).length >= expectedTargets.length);
+    }
+  }
+});
+
+test("finale recipe safe and exit both have legal player interaction approaches", () => {
+  const finale = Campaign.generateCampaign("final-player-route").stages.at(-1);
+  const result = C.validateStagePlayability(finale, 20);
+  assert.equal(result.ok, true, result.reason || "finale progression unreachable");
+
+  const safeApproach = Object.values(result.fromSpawn).find(entry =>
+    Math.hypot(entry.point.x - finale.safe.x, entry.point.y - finale.safe.y) <= 72
+  );
+  assert.ok(safeApproach);
+
+  const exitApproach = Object.values(result.fromSpawn).find(entry =>
+    Math.hypot(entry.point.x - finale.exit.x, entry.point.y - finale.exit.y) <= 72
+  );
+  assert.ok(exitApproach);
+});
