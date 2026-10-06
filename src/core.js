@@ -244,6 +244,212 @@
     return { points: simplified, target: resolvedTarget, exact };
   }
 
+  function findInteractionApproach(
+    start,
+    target,
+    radius,
+    solids,
+    losBlockers,
+    bounds,
+    maxDistance = 72,
+    cellSize = 24
+  ) {
+    if (!start || !target) return null;
+    const candidates = [];
+    const seen = new Set();
+    const step = Math.max(12, Number(cellSize) || 24);
+    const minX = Math.max(bounds.x + radius, target.x - maxDistance);
+    const maxX = Math.min(bounds.x + bounds.w - radius, target.x + maxDistance);
+    const minY = Math.max(bounds.y + radius, target.y - maxDistance);
+    const maxY = Math.min(bounds.y + bounds.h - radius, target.y + maxDistance);
+
+    function addCandidate(point) {
+      const key = `${Math.round(point.x * 10)}:${Math.round(point.y * 10)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      if (dist(point, target) > maxDistance) return;
+      if (!pointClearForCircle(point, radius, solids, bounds)) return;
+      if (!hasLineOfSight(point, target, losBlockers || [])) return;
+      candidates.push({ x: point.x, y: point.y });
+    }
+
+    addCandidate(start);
+    addCandidate({
+      x: clamp(target.x, bounds.x + radius, bounds.x + bounds.w - radius),
+      y: clamp(target.y, bounds.y + radius, bounds.y + bounds.h - radius)
+    });
+
+    for (let y = minY; y <= maxY + 1e-6; y += step) {
+      for (let x = minX; x <= maxX + 1e-6; x += step) addCandidate({ x, y });
+    }
+
+    const rings = [Math.min(maxDistance - 2, 68), 54, 40, 26];
+    for (const ring of rings) {
+      if (ring <= 0) continue;
+      for (let i = 0; i < 24; i += 1) {
+        const angle = Math.PI * 2 * i / 24;
+        addCandidate({
+          x: target.x + Math.cos(angle) * ring,
+          y: target.y + Math.sin(angle) * ring
+        });
+      }
+    }
+
+    candidates.sort((a, b) => {
+      const targetDelta = dist(a, target) - dist(b, target);
+      if (Math.abs(targetDelta) > 1e-6) return targetDelta;
+      return dist(a, start) - dist(b, start);
+    });
+
+    for (const candidate of candidates) {
+      const plan = planCirclePath(start, candidate, radius, solids, bounds, cellSize);
+      if (!plan.points.length || !plan.exact) continue;
+      return {
+        point: candidate,
+        path: plan.points,
+        distanceToTarget: dist(candidate, target)
+      };
+    }
+    return null;
+  }
+
+  function reachableGridPoints(origin, radius, solids, bounds, cellSize = 24) {
+    const minX = bounds.x + radius;
+    const maxX = bounds.x + bounds.w - radius;
+    const minY = bounds.y + radius;
+    const maxY = bounds.y + bounds.h - radius;
+    const step = Math.max(12, Number(cellSize) || 24);
+    const cols = Math.max(2, Math.floor((maxX - minX) / step) + 1);
+    const rows = Math.max(2, Math.floor((maxY - minY) / step) + 1);
+    const pointFor = (x, y) => ({
+      x: clamp(minX + x * step, minX, maxX),
+      y: clamp(minY + y * step, minY, maxY)
+    });
+    const cellFor = point => ({
+      x: clamp(Math.round((point.x - minX) / step), 0, cols - 1),
+      y: clamp(Math.round((point.y - minY) / step), 0, rows - 1)
+    });
+    const freeCell = (x, y) => {
+      if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
+      return pointClearForCircle(pointFor(x, y), radius, solids, bounds);
+    };
+    const startCellGuess = cellFor(origin);
+    let startCell = null;
+
+    for (let ring = 0; ring <= Math.max(cols, rows) && !startCell; ring += 1) {
+      for (let y = startCellGuess.y - ring; y <= startCellGuess.y + ring && !startCell; y += 1) {
+        for (let x = startCellGuess.x - ring; x <= startCellGuess.x + ring; x += 1) {
+          if (Math.max(Math.abs(x - startCellGuess.x), Math.abs(y - startCellGuess.y)) !== ring) continue;
+          if (!freeCell(x, y)) continue;
+          const point = pointFor(x, y);
+          if (!segmentClearForCircle(origin, point, radius, solids, bounds)) continue;
+          startCell = { x, y };
+          break;
+        }
+      }
+    }
+    if (!startCell) return [];
+
+    const indexFor = (x, y) => y * cols + x;
+    const visited = new Uint8Array(cols * rows);
+    const queueX = [startCell.x];
+    const queueY = [startCell.y];
+    let head = 0;
+    visited[indexFor(startCell.x, startCell.y)] = 1;
+    const points = [{ x: origin.x, y: origin.y }];
+    const directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1],
+      [-1, -1], [1, -1], [-1, 1], [1, 1]
+    ];
+
+    while (head < queueX.length) {
+      const x = queueX[head];
+      const y = queueY[head];
+      head += 1;
+      const currentPoint = pointFor(x, y);
+      points.push(currentPoint);
+
+      for (const [ox, oy] of directions) {
+        const nx = x + ox;
+        const ny = y + oy;
+        if (!freeCell(nx, ny)) continue;
+        const index = indexFor(nx, ny);
+        if (visited[index]) continue;
+        if (ox !== 0 && oy !== 0 && (!freeCell(x + ox, y) || !freeCell(x, y + oy))) continue;
+        const nextPoint = pointFor(nx, ny);
+        if (!segmentClearForCircle(currentPoint, nextPoint, radius, solids, bounds)) continue;
+        visited[index] = 1;
+        queueX.push(nx);
+        queueY.push(ny);
+      }
+    }
+
+    return points;
+  }
+
+  function validateStagePlayability(stage, cellSize = 24) {
+    if (!stage || !stage.spawn || !stage.exit) return { ok: false, reason: "player progression data missing" };
+    const solids = [...(stage.walls || []), ...(stage.furniture || [])];
+    const walls = stage.walls || [];
+    const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
+    const targets = [
+      ...(stage.clues || []).map(target => ({ target, kind: "clue" })),
+      ...(stage.items || []).map(target => ({ target, kind: "item" })),
+      ...(stage.safe ? [{ target: stage.safe, kind: "safe" }] : []),
+      { target: stage.exit, kind: "exit" }
+    ];
+
+    function validateFrom(origin, originLabel) {
+      const reachable = reachableGridPoints(origin, 16, solids, stageBounds, cellSize);
+      if (!reachable.length) return { ok: false, reason: `${originLabel} has no walkable component` };
+      const approaches = Object.create(null);
+
+      for (let i = 0; i < targets.length; i += 1) {
+        const { target, kind } = targets[i];
+        const key = target.id || kind;
+        let bestPoint = null;
+        let bestDistance = Infinity;
+
+        for (const point of reachable) {
+          const interactionDistance = dist(point, target);
+          if (interactionDistance > 72 || interactionDistance >= bestDistance) continue;
+          if (!hasLineOfSight(point, target, walls)) continue;
+          bestPoint = point;
+          bestDistance = interactionDistance;
+        }
+
+        if (!bestPoint) {
+          return {
+            ok: false,
+            reason: `${originLabel} cannot reach ${kind}: ${key}`,
+            target: key,
+            kind
+          };
+        }
+
+        approaches[key] = {
+          point: { x: bestPoint.x, y: bestPoint.y },
+          distanceToTarget: bestDistance
+        };
+      }
+
+      return { ok: true, approaches };
+    }
+
+    const fromSpawn = validateFrom(stage.spawn, "spawn");
+    if (!fromSpawn.ok) return fromSpawn;
+
+    const retryOrigin = stage.retrySpawn || stage.spawn;
+    const fromRetry = validateFrom(retryOrigin, "retry spawn");
+    if (!fromRetry.ok) return fromRetry;
+
+    return {
+      ok: true,
+      fromSpawn: fromSpawn.approaches,
+      fromRetry: fromRetry.approaches
+    };
+  }
+
   function validateStageNavigation(stage, cellSize = 28) {
     const solids = [...(stage.walls || []), ...(stage.furniture || [])];
     const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
@@ -421,6 +627,8 @@
     pointClearForCircle,
     segmentClearForCircle,
     planCirclePath,
+    findInteractionApproach,
+    validateStagePlayability,
     validateStageNavigation,
     segmentsIntersect,
     segmentHitsRect,

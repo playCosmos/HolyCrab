@@ -94,7 +94,7 @@ function createStorage(backing) {
   };
 }
 
-function createHarness(storageBacking = new Map()) {
+function createHarness(storageBacking = new Map(), options = {}) {
   const elementListeners = new Map();
   const elements = new Map();
   const counters = { drawImage: 0, staticCanvasCreated: 0, rafRequests: 0 };
@@ -191,6 +191,7 @@ function createHarness(storageBacking = new Map()) {
     document,
     performance,
     requestAnimationFrame,
+    __HOLYCRAB_TEST__: options.enableTestHooks !== false,
     addEventListener(type, handler) {
       (windowListeners[type] ||= []).push(handler);
     }
@@ -249,6 +250,7 @@ function createHarness(storageBacking = new Map()) {
     document,
     storageBacking,
     counters,
+    hooks: windowObject.__HolyCrabTestHooks,
     dispatchElement,
     dispatchWindow,
     dispatchDocument,
@@ -256,6 +258,53 @@ function createHarness(storageBacking = new Map()) {
     hasPendingFrame: () => typeof rafCallback === "function"
   };
 }
+
+function advanceUntilNotVN(harness, maxClicks = 30) {
+  for (let i = 0; i < maxClicks && harness.hooks.snapshot().gameState === "vn"; i += 1) {
+    harness.dispatchElement("vn-next");
+  }
+  return harness.hooks.snapshot();
+}
+
+function interactAt(harness, point) {
+  harness.hooks.clearActionLock();
+  harness.hooks.teleportPlayer(point);
+  harness.dispatchWindow("keydown", { code: "KeyE" });
+}
+
+function consumeDailyItem(harness, stage) {
+  const item = stage.items[0];
+  if (!item) return;
+  harness.hooks.clearActionLock();
+
+  if (item.type === "cigarette") {
+    harness.dispatchWindow("keydown", { code: "Digit2" });
+    assert.equal(harness.hooks.snapshot().inventory.cigarette, 0);
+    return;
+  }
+
+  const solids = [...stage.walls, ...stage.furniture];
+  const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
+  const approach = Core.findInteractionApproach(
+    stage.spawn,
+    stage.momSpawn,
+    16,
+    solids,
+    solids,
+    stageBounds,
+    76,
+    20
+  );
+  assert.ok(approach, `${stage.id}: no binding-item approach to mom`);
+  harness.hooks.teleportPlayer(approach.point);
+  harness.dispatchWindow("keydown", { code: "Digit1" });
+  assert.equal(harness.hooks.snapshot().inventory.binding, 0);
+}
+
+test("test-only runtime hooks are absent without the explicit test flag", () => {
+  const harness = createHarness(new Map(), { enableTestHooks: false });
+  assert.equal(harness.hooks, undefined);
+});
 
 test("actual game runtime reaches play, pauses, saves, and restores", () => {
   const storage = new Map();
@@ -383,4 +432,125 @@ test("frame loop sleeps outside active play and static stage rendering is cached
   harness.dispatchElement("resume-btn");
   assert.equal(harness.hasPendingFrame(), true);
   assert.equal(harness.counters.staticCanvasCreated, 1);
+});
+
+
+test("a fixed campaign can be completed through the real 10-day runtime with catches and restore", () => {
+  const seedInput = "e2e-complete-campaign";
+  const campaign = Campaign.generateCampaign(seedInput);
+  const storage = new Map();
+  storage.set(Session.STORAGE_KEY, Session.encode({
+    seedInput,
+    stageIndex: 0,
+    collected: {},
+    pickedItems: {},
+    usedDistractions: {},
+    inventory: { binding: 0, cigarette: 0 },
+    hasRecipe: false,
+    caught: 0,
+    elapsed: 0,
+    stageCaughtStart: 0
+  }));
+
+  let harness = createHarness(storage);
+  harness.dispatchElement("continue-btn");
+  assert.equal(harness.hooks.snapshot().gameState, "playing");
+  assert.equal(harness.hooks.snapshot().stageIndex, 0);
+
+  let expectedCaught = 0;
+
+  for (let dayIndex = 0; dayIndex < campaign.stages.length; dayIndex += 1) {
+    const stage = campaign.stages[dayIndex];
+    assert.equal(harness.hooks.snapshot().stageIndex, dayIndex, `wrong stage before DAY ${dayIndex + 1}`);
+
+    let playability = Core.validateStagePlayability(stage, 20);
+    assert.equal(playability.ok, true, `${stage.id}: ${playability.reason || "not playable"}`);
+    let approaches = playability.fromSpawn;
+
+    const item = stage.items[0];
+    assert.ok(item);
+    interactAt(harness, approaches[item.id].point);
+    let state = harness.hooks.snapshot();
+    assert.equal(state.pickedItems[item.id], true, `${stage.id}: daily item was not picked`);
+
+    if (dayIndex === 4) {
+      const firstClue = stage.clues[0];
+      interactAt(harness, approaches[firstClue.id].point);
+      state = harness.hooks.snapshot();
+      assert.equal(state.collected[firstClue.id], true);
+
+      const inventoryBeforeReload = { ...state.inventory };
+      const caughtBeforeReload = state.caught;
+
+      harness = createHarness(storage);
+      harness.dispatchElement("continue-btn");
+      state = harness.hooks.snapshot();
+
+      assert.equal(state.stageIndex, dayIndex);
+      assert.equal(state.collected[firstClue.id], true);
+      assert.equal(state.pickedItems[item.id], true);
+      assert.equal(state.inventory.binding, inventoryBeforeReload.binding);
+      assert.equal(state.inventory.cigarette, inventoryBeforeReload.cigarette);
+      assert.equal(state.caught, caughtBeforeReload);
+
+      playability = Core.validateStagePlayability(stage, 20);
+      approaches = playability.fromRetry;
+    }
+
+    consumeDailyItem(harness, stage);
+
+    for (let clueIndex = 0; clueIndex < stage.clues.length; clueIndex += 1) {
+      const clue = stage.clues[clueIndex];
+      if (harness.hooks.snapshot().collected[clue.id]) continue;
+
+      interactAt(harness, approaches[clue.id].point);
+      state = harness.hooks.snapshot();
+      assert.equal(state.collected[clue.id], true, `${stage.id}: clue ${clue.id} was not collected`);
+
+      if ((dayIndex === 1 || dayIndex === 6) && clueIndex === 0) {
+        const retainedId = clue.id;
+        expectedCaught += 1;
+        harness.hooks.triggerCaught(dayIndex >= 6 ? "sister" : "mom");
+        assert.equal(harness.hooks.snapshot().gameState, "vn");
+        state = advanceUntilNotVN(harness);
+        assert.equal(state.gameState, "playing");
+        assert.equal(state.stageIndex, dayIndex);
+        assert.equal(state.caught, expectedCaught);
+        assert.equal(state.collected[retainedId], true, `${stage.id}: caught flow lost collected clue`);
+        approaches = Core.validateStagePlayability(stage, 20).fromRetry;
+      }
+    }
+
+    state = harness.hooks.snapshot();
+    for (const clue of stage.clues) {
+      assert.equal(state.collected[clue.id], true, `${stage.id}: missing clue before exit`);
+    }
+
+    if (stage.safe) {
+      interactAt(harness, approaches.safe.point);
+      state = harness.hooks.snapshot();
+      assert.equal(state.hasRecipe, true, `${stage.id}: final recipe was not acquired`);
+      harness.hooks.clearActionLock();
+    }
+
+    interactAt(harness, approaches.exit.point);
+    state = harness.hooks.snapshot();
+
+    if (dayIndex < campaign.stages.length - 1) {
+      assert.equal(state.gameState, "vn", `${stage.id}: exit did not enter summary`);
+      state = advanceUntilNotVN(harness);
+      assert.equal(state.gameState, "playing", `${stage.id}: next day did not start`);
+      assert.equal(state.stageIndex, dayIndex + 1, `${stage.id}: stage index did not advance`);
+    } else {
+      assert.equal(state.gameState, "vn", "final exit did not start ending");
+      state = advanceUntilNotVN(harness);
+      assert.equal(state.gameState, "result");
+      assert.equal(state.runCompleted, true);
+      assert.equal(state.stageIndex, 9);
+      assert.equal(state.caught, expectedCaught);
+      assert.equal(storage.has(Session.STORAGE_KEY), false);
+      assert.equal(harness.elements.get("result").classList.contains("hidden"), false);
+      assert.match(harness.elements.get("result-title").textContent, /10일 작전 성공/);
+    }
+  }
 });
