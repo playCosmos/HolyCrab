@@ -129,11 +129,17 @@ test("gameplay feedback layers are separate from persistent HUD and respect redu
   const css = fs.readFileSync(path.join(__dirname, "..", "style.css"), "utf8");
   const gameSource = fs.readFileSync(path.join(__dirname, "..", "src", "game.js"), "utf8");
 
-  const playfield = html.match(/<div id="playfield">[sS]*?</div>s*<div id="bottom-status-bar"/)?.[0] || "";
-  assert.match(playfield, /id="danger-vignette"/);
-  assert.match(playfield, /id="event-banner"/);
-  assert.match(playfield, /id="event-banner-kicker"/);
-  assert.match(playfield, /id="event-banner-text"/);
+  const playfield = html.indexOf('id="playfield"');
+  const danger = html.indexOf('id="danger-vignette"');
+  const banner = html.indexOf('id="event-banner"');
+  const kicker = html.indexOf('id="event-banner-kicker"');
+  const text = html.indexOf('id="event-banner-text"');
+  const bottom = html.indexOf('id="bottom-status-bar"');
+
+  assert.ok(playfield >= 0);
+  assert.ok(danger > playfield && danger < bottom);
+  assert.ok(banner > playfield && banner < bottom);
+  assert.ok(kicker > banner && text > kicker);
 
   assert.match(css, /#danger-vignette[sS]*pointer-events:s*none/);
   assert.match(css, /#event-banner[sS]*pointer-events:s*none/);
