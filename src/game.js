@@ -1536,6 +1536,10 @@
   }
 
   function rebuildStaticStageLayer() {
+    if (staticStageCanvas) {
+      staticStageCanvas.width = 0;
+      staticStageCanvas.height = 0;
+    }
     staticStageCanvas = null;
     if (!document.createElement) return;
     const layer = document.createElement("canvas");
