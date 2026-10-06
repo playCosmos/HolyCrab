@@ -244,6 +244,129 @@
     return { points: simplified, target: resolvedTarget, exact };
   }
 
+  function findInteractionApproach(
+    start,
+    target,
+    radius,
+    solids,
+    losBlockers,
+    bounds,
+    maxDistance = 72,
+    cellSize = 24
+  ) {
+    if (!start || !target) return null;
+    const candidates = [];
+    const seen = new Set();
+    const step = Math.max(12, Number(cellSize) || 24);
+    const minX = Math.max(bounds.x + radius, target.x - maxDistance);
+    const maxX = Math.min(bounds.x + bounds.w - radius, target.x + maxDistance);
+    const minY = Math.max(bounds.y + radius, target.y - maxDistance);
+    const maxY = Math.min(bounds.y + bounds.h - radius, target.y + maxDistance);
+
+    function addCandidate(point) {
+      const key = `${Math.round(point.x * 10)}:${Math.round(point.y * 10)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      if (dist(point, target) > maxDistance) return;
+      if (!pointClearForCircle(point, radius, solids, bounds)) return;
+      if (!hasLineOfSight(point, target, losBlockers || [])) return;
+      candidates.push({ x: point.x, y: point.y });
+    }
+
+    addCandidate(start);
+    addCandidate({
+      x: clamp(target.x, bounds.x + radius, bounds.x + bounds.w - radius),
+      y: clamp(target.y, bounds.y + radius, bounds.y + bounds.h - radius)
+    });
+
+    for (let y = minY; y <= maxY + 1e-6; y += step) {
+      for (let x = minX; x <= maxX + 1e-6; x += step) addCandidate({ x, y });
+    }
+
+    const rings = [Math.min(maxDistance - 2, 68), 54, 40, 26];
+    for (const ring of rings) {
+      if (ring <= 0) continue;
+      for (let i = 0; i < 24; i += 1) {
+        const angle = Math.PI * 2 * i / 24;
+        addCandidate({
+          x: target.x + Math.cos(angle) * ring,
+          y: target.y + Math.sin(angle) * ring
+        });
+      }
+    }
+
+    candidates.sort((a, b) => {
+      const targetDelta = dist(a, target) - dist(b, target);
+      if (Math.abs(targetDelta) > 1e-6) return targetDelta;
+      return dist(a, start) - dist(b, start);
+    });
+
+    for (const candidate of candidates) {
+      const plan = planCirclePath(start, candidate, radius, solids, bounds, cellSize);
+      if (!plan.points.length || !plan.exact) continue;
+      return {
+        point: candidate,
+        path: plan.points,
+        distanceToTarget: dist(candidate, target)
+      };
+    }
+    return null;
+  }
+
+  function validateStagePlayability(stage, cellSize = 24) {
+    if (!stage || !stage.spawn || !stage.exit) return { ok: false, reason: "player progression data missing" };
+    const solids = [...(stage.walls || []), ...(stage.furniture || [])];
+    const walls = stage.walls || [];
+    const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
+    const targets = [
+      ...(stage.clues || []).map(target => ({ target, kind: "clue" })),
+      ...(stage.items || []).map(target => ({ target, kind: "item" })),
+      ...(stage.safe ? [{ target: stage.safe, kind: "safe" }] : []),
+      { target: stage.exit, kind: "exit" }
+    ];
+
+    function validateFrom(origin, originLabel) {
+      const approaches = Object.create(null);
+      for (let i = 0; i < targets.length; i += 1) {
+        const { target, kind } = targets[i];
+        const key = target.id || `${kind}-${i}`;
+        const approach = findInteractionApproach(
+          origin,
+          target,
+          16,
+          solids,
+          walls,
+          stageBounds,
+          72,
+          cellSize
+        );
+        if (!approach) {
+          return {
+            ok: false,
+            reason: `${originLabel} cannot reach ${kind}: ${key}`,
+            target: key,
+            kind
+          };
+        }
+        approaches[key] = approach;
+      }
+      return { ok: true, approaches };
+    }
+
+    const fromSpawn = validateFrom(stage.spawn, "spawn");
+    if (!fromSpawn.ok) return fromSpawn;
+
+    const retryOrigin = stage.retrySpawn || stage.spawn;
+    const fromRetry = validateFrom(retryOrigin, "retry spawn");
+    if (!fromRetry.ok) return fromRetry;
+
+    return {
+      ok: true,
+      fromSpawn: fromSpawn.approaches,
+      fromRetry: fromRetry.approaches
+    };
+  }
+
   function validateStageNavigation(stage, cellSize = 28) {
     const solids = [...(stage.walls || []), ...(stage.furniture || [])];
     const stageBounds = stage.bounds || { x: 14, y: 14, w: 1412, h: 782 };
@@ -421,6 +544,8 @@
     pointClearForCircle,
     segmentClearForCircle,
     planCirclePath,
+    findInteractionApproach,
+    validateStagePlayability,
     validateStageNavigation,
     segmentsIntersect,
     segmentHitsRect,
