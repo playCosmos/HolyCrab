@@ -406,7 +406,7 @@
 
       for (let i = 0; i < targets.length; i += 1) {
         const { target, kind } = targets[i];
-        const key = target.id || `${kind}-${i}`;
+        const key = target.id || kind;
         let bestPoint = null;
         let bestDistance = Infinity;
 
