@@ -1398,53 +1398,57 @@
     updateSuspicionUI();
   }
 
+  function roundedRectOn(target, x, y, w, h, r, fill, stroke) {
+    target.beginPath();
+    target.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
+    if (fill) { target.fillStyle = fill; target.fill(); }
+    if (stroke) { target.strokeStyle = stroke; target.stroke(); }
+  }
+
   function roundedRect(x, y, w, h, r, fill, stroke) {
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+    roundedRectOn(ctx, x, y, w, h, r, fill, stroke);
   }
 
-  function drawFloor() {
-    ctx.fillStyle = stage.palette.bg;
-    ctx.fillRect(0, 0, W, H);
+  function drawFloor(target = ctx) {
+    target.fillStyle = stage.palette.bg;
+    target.fillRect(0, 0, W, H);
     for (const zone of stage.zones) {
-      roundedRect(zone.x, zone.y, zone.w, zone.h, 20, zone.tone);
-      ctx.save();
-      ctx.globalAlpha = .23;
-      ctx.fillStyle = "#fff2dd";
-      ctx.font = "700 24px Segoe UI, Malgun Gothic, sans-serif";
-      ctx.fillText(zone.label, zone.x + 28, zone.y + 44);
-      ctx.restore();
+      roundedRectOn(target, zone.x, zone.y, zone.w, zone.h, 20, zone.tone);
+      target.save();
+      target.globalAlpha = .23;
+      target.fillStyle = "#fff2dd";
+      target.font = "700 24px Segoe UI, Malgun Gothic, sans-serif";
+      target.fillText(zone.label, zone.x + 28, zone.y + 44);
+      target.restore();
     }
-    ctx.strokeStyle = stage.palette.grid;
-    ctx.lineWidth = 1;
+    target.strokeStyle = stage.palette.grid;
+    target.lineWidth = 1;
     for (let x = 20; x < W; x += 42) {
-      ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, H - 20); ctx.stroke();
+      target.beginPath(); target.moveTo(x, 20); target.lineTo(x, H - 20); target.stroke();
     }
   }
 
-  function drawWallsAndFurniture() {
-    ctx.lineWidth = 1.5;
+  function drawWallsAndFurniture(target = ctx) {
+    target.lineWidth = 1.5;
     for (const w of walls) {
-      roundedRect(
-        w.x, w.y, w.w, w.h, 5,
+      roundedRectOn(
+        target, w.x, w.y, w.w, w.h, 5,
         stage.palette.wall,
         stage.palette.wallEdge || "rgba(255,255,255,.12)"
       );
     }
 
     for (const p of (stage.passages || [])) {
-      ctx.save();
-      ctx.shadowColor = stage.palette.passageEdge || "rgba(255,226,189,.55)";
-      ctx.shadowBlur = 7;
-      ctx.lineWidth = 2;
-      roundedRect(
-        p.x, p.y, p.w, p.h, 4,
+      target.save();
+      target.shadowColor = stage.palette.passageEdge || "rgba(255,226,189,.55)";
+      target.shadowBlur = 7;
+      target.lineWidth = 2;
+      roundedRectOn(
+        target, p.x, p.y, p.w, p.h, 4,
         stage.palette.passage || "rgba(255,226,189,.28)",
         stage.palette.passageEdge || "rgba(255,226,189,.55)"
       );
-      ctx.restore();
+      target.restore();
     }
 
     for (const f of furniture) {
@@ -1455,11 +1459,25 @@
       if (!f.color && (f.kind === "counter" || f.kind === "pantry" || f.kind === "drawer")) fill = "#63483e";
       if (!f.color && f.kind === "fridge") fill = "#6a6a70";
       if (!f.color && f.kind === "tv") fill = "#25232b";
-      roundedRect(f.x, f.y, f.w, f.h, 10, fill, "rgba(255,255,255,.08)");
-      ctx.fillStyle = "rgba(255,245,234,.48)";
-      ctx.font = "11px Segoe UI, Malgun Gothic, sans-serif";
-      ctx.fillText(f.label, f.x + 8, f.y + 18);
+      roundedRectOn(target, f.x, f.y, f.w, f.h, 10, fill, "rgba(255,255,255,.08)");
+      target.fillStyle = "rgba(255,245,234,.48)";
+      target.font = "11px Segoe UI, Malgun Gothic, sans-serif";
+      target.fillText(f.label, f.x + 8, f.y + 18);
     }
+  }
+
+  function rebuildStaticStageLayer() {
+    staticStageCanvas = null;
+    if (!document.createElement) return;
+    const layer = document.createElement("canvas");
+    if (!layer || typeof layer.getContext !== "function") return;
+    layer.width = W;
+    layer.height = H;
+    const layerCtx = layer.getContext("2d");
+    if (!layerCtx) return;
+    drawFloor(layerCtx);
+    drawWallsAndFurniture(layerCtx);
+    staticStageCanvas = layer;
   }
 
   function drawInteractables() {
