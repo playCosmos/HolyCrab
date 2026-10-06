@@ -108,8 +108,11 @@
   let previousChaseRoles = new Set();
   let warningLatched = false;
   let footstepTimer = 0;
+  let hudUpdateTimer = 0;
   let autosaveTimer = 8;
   let noiseRings = [];
+  let staticStageCanvas = null;
+  let renderDirty = true;
   let stageCaughtStart = 0;
   let vnLines = [];
   let vnIndex = 0;
@@ -460,10 +463,13 @@
 
     freeze = 0;
     footstepTimer = 0;
+    hudUpdateTimer = 0;
     boostTimer = 0;
     coughTimer = 0;
     coughPending = false;
     noiseRings = [];
+    rebuildStaticStageLayer();
+    renderDirty = true;
     resetPursuitFeedback();
     ui.journal.classList.add("hidden");
     renderJournal();
@@ -864,6 +870,7 @@
   function caughtBy(watcher) {
     caught += 1;
     freeze = 1.2;
+    renderDirty = true;
     resetPursuitFeedback();
     player.hidden = false;
     player.hideSpot = null;
