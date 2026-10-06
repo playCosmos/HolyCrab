@@ -94,7 +94,7 @@ function createStorage(backing) {
   };
 }
 
-function createHarness(storageBacking = new Map()) {
+function createHarness(storageBacking = new Map(), options = {}) {
   const elementListeners = new Map();
   const elements = new Map();
   const counters = { drawImage: 0, staticCanvasCreated: 0, rafRequests: 0 };
@@ -191,7 +191,7 @@ function createHarness(storageBacking = new Map()) {
     document,
     performance,
     requestAnimationFrame,
-    __HOLYCRAB_TEST__: true,
+    __HOLYCRAB_TEST__: options.enableTestHooks !== false,
     addEventListener(type, handler) {
       (windowListeners[type] ||= []).push(handler);
     }
@@ -300,6 +300,11 @@ function consumeDailyItem(harness, stage) {
   harness.dispatchWindow("keydown", { code: "Digit1" });
   assert.equal(harness.hooks.snapshot().inventory.binding, 0);
 }
+
+test("test-only runtime hooks are absent without the explicit test flag", () => {
+  const harness = createHarness(new Map(), { enableTestHooks: false });
+  assert.equal(harness.hooks, undefined);
+});
 
 test("actual game runtime reaches play, pauses, saves, and restores", () => {
   const storage = new Map();
