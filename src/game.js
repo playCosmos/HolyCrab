@@ -1258,15 +1258,17 @@
   }
 
   function updateInventoryUI() {
-    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`;
-    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`;
+    setTextIfChanged(ui.inventoryBinding, `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`);
+    setTextIfChanged(ui.inventoryCigarette, `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`);
     if (ui.boostStatus) {
-      ui.boostStatus.textContent = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
-      ui.boostStatus.classList.toggle("hidden", boostTimer <= 0);
+      const boostText = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
+      setTextIfChanged(ui.boostStatus, boostText);
+      setClassState(ui.boostStatus, "hidden", boostTimer <= 0);
     }
   }
 
   function updateItemEffects(dt) {
+    const previousBoostTenth = Math.ceil(boostTimer * 10);
     if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - dt);
     if (coughPending) {
       coughTimer -= dt;
@@ -1276,7 +1278,7 @@
         showToast("콜록! 담배 때문에 소리가 났다.", 1.2);
       }
     }
-    updateInventoryUI();
+    if (Math.ceil(boostTimer * 10) !== previousBoostTenth) updateInventoryUI();
   }
 
   function updateNoise(dt) {
@@ -1288,48 +1290,54 @@
   }
 
   function updateMission() {
-    ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
+    setTextIfChanged(ui.missionLabel, `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`);
     if (!stageCluesComplete()) {
-      ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
+      setTextIfChanged(ui.mission, `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`);
       const pursuers = stage.sisterActive ? "엄마와 언니" : "엄마";
-      ui.submission.textContent = `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`;
+      setTextIfChanged(ui.submission, `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`);
     } else if (safe && !hasRecipe) {
-      ui.mission.textContent = "원본 레시피 위치로 이동";
-      ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
+      setTextIfChanged(ui.mission, "원본 레시피 위치로 이동");
+      setTextIfChanged(ui.submission, "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.");
     } else {
-      ui.mission.textContent = stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로";
-      ui.submission.textContent = `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`;
+      setTextIfChanged(
+        ui.mission,
+        stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로"
+      );
+      setTextIfChanged(ui.submission, `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`);
     }
   }
 
   function updatePrompt() {
     if (gameState !== "playing") {
-      ui.prompt.classList.remove("show");
+      setClassState(ui.prompt, "show", false);
       return;
     }
     let text = "";
     if (player.actionLock > 0) {
       text = "확인 중… 잠깐 움직일 수 없다";
     } else if (player.hidden) {
-      const searcher = watchers
-        .filter(watcher =>
-          watcher.boundTimer <= 0 &&
-          [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
-        )
-        .map(watcher => ({ watcher, distance: C.dist(watcher, player) }))
-        .sort((a, b) => a.distance - b.distance)[0];
-      text = searcher && searcher.distance < 110
-        ? `⚠ ${searcher.watcher.name}가 숨은 곳을 수색 중 · E · 나오기`
+      let nearestSearcher = null;
+      let nearestDistance = Infinity;
+      for (const watcher of watchers) {
+        if (
+          watcher.boundTimer > 0 ||
+          ![AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
+        ) continue;
+        const distance = C.dist(watcher, player);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestSearcher = watcher;
+        }
+      }
+      text = nearestSearcher && nearestDistance < 110
+        ? `⚠ ${nearestSearcher.name}가 숨은 곳을 수색 중 · E · 나오기`
         : "E · 숨는 곳에서 나오기";
     } else {
       text = interactionPrompt(nearestUsableInteractable(72));
     }
-    if (text) {
-      ui.prompt.textContent = text;
-      ui.prompt.classList.add("show");
-    } else {
-      ui.prompt.classList.remove("show");
-    }
+
+    if (text) setTextIfChanged(ui.prompt, text);
+    setClassState(ui.prompt, "show", !!text);
   }
 
   function updateSuspicionUI() {
