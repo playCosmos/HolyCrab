@@ -121,6 +121,94 @@ kbd {
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+
+#danger-vignette {
+  --danger: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: calc(var(--danger) * .9);
+  background:
+    radial-gradient(circle at center, transparent 46%, rgba(116, 12, 20, .16) 66%, rgba(191, 35, 45, .62) 100%);
+  box-shadow: inset 0 0 calc(34px + var(--danger) * 70px) rgba(233, 63, 74, calc(var(--danger) * .5));
+  transition: opacity .12s linear, box-shadow .12s linear;
+}
+#danger-vignette.warning {
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+#danger-vignette.chase {
+  animation: danger-pulse .42s ease-in-out infinite alternate;
+}
+@keyframes danger-pulse {
+  from { filter: brightness(.9); }
+  to { filter: brightness(1.28); }
+}
+
+#event-banner {
+  position: absolute;
+  left: 50%;
+  top: 13%;
+  z-index: 14;
+  min-width: 260px;
+  max-width: min(620px, 74%);
+  padding: 12px 18px 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,245,234,.18);
+  background: rgba(20,16,23,.92);
+  box-shadow: 0 18px 46px rgba(0,0,0,.38);
+  backdrop-filter: blur(9px);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -14px) scale(.98);
+  transition: opacity .16s ease, transform .18s ease;
+}
+#event-banner.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+#event-banner-kicker {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255,245,234,.56);
+}
+#event-banner-text {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+#event-banner[data-kind="day"] {
+  border-color: rgba(246,183,126,.40);
+  background: linear-gradient(180deg, rgba(63,43,35,.94), rgba(24,17,22,.94));
+}
+#event-banner[data-kind="clue"] {
+  border-color: rgba(241,190,104,.44);
+}
+#event-banner[data-kind="item"] {
+  border-color: rgba(134,202,210,.42);
+}
+#event-banner[data-kind="danger"],
+#event-banner[data-kind="escape"] {
+  border-color: rgba(239,102,111,.56);
+  background: linear-gradient(180deg, rgba(83,27,34,.95), rgba(28,17,23,.96));
+}
+#event-banner[data-kind="safe"] {
+  border-color: rgba(159,214,138,.46);
+}
+
+.suspicion-card.warning {
+  border-color: rgba(244,154,103,.5);
+  box-shadow: 0 0 0 1px rgba(244,154,103,.12), 0 8px 30px rgba(0,0,0,.25);
+}
+.suspicion-card.chasing {
+  border-color: rgba(239,102,111,.72);
+  box-shadow: 0 0 0 1px rgba(239,102,111,.2), 0 0 24px rgba(239,102,111,.16);
+}
+
 .overlay {
   position: absolute;
   inset: 0;
