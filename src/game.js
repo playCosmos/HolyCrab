@@ -64,6 +64,20 @@
 
   const keys = Object.create(null);
 
+  function setTextIfChanged(element, value) {
+    if (element && element.textContent !== value) element.textContent = value;
+  }
+
+  function setClassState(element, name, enabled) {
+    if (!element) return;
+    const next = !!enabled;
+    if (element.classList.contains(name) !== next) element.classList.toggle(name, next);
+  }
+
+  function setStyleIfChanged(element, property, value) {
+    if (element && element.style[property] !== value) element.style[property] = value;
+  }
+
   const player = {
     x: 0, y: 0, r: 16, angle: 0,
     hidden: false, hideSpot: null, moving: false, sneaking: false,
@@ -105,17 +119,21 @@
   let toastTimer = 0;
   let eventBannerTimer = 0;
   let eventBannerPriority = 0;
-  let previousChaseRoles = new Set();
+  let previousChaseMask = 0;
   let warningLatched = false;
   let footstepTimer = 0;
+  let hudUpdateTimer = 0;
   let autosaveTimer = 8;
   let noiseRings = [];
+  let staticStageCanvas = null;
+  let renderDirty = true;
   let stageCaughtStart = 0;
   let vnLines = [];
   let vnIndex = 0;
   let vnDone = null;
   let vnTone = "story";
   let lastFrame = performance.now();
+  let frameHandle = null;
 
   class AudioEngine {
     constructor() { this.ctx = null; }
@@ -225,6 +243,7 @@
     pausedFromState = null;
     lastFrame = performance.now();
     ui.pause.classList.add("hidden");
+    ensureFrameLoop();
     return true;
   }
 
@@ -300,6 +319,7 @@
       2.0
     );
     saveSession();
+    ensureFrameLoop();
     return true;
   }
 
@@ -344,6 +364,7 @@
     ui.prompt.classList.remove("show");
     ui.vnScene.classList.remove("hidden");
     renderVNLine();
+    ensureFrameLoop();
   }
 
   function nextVN() {
@@ -363,6 +384,7 @@
     vnLines = [];
     vnIndex = 0;
     if (done) done();
+    if (gameState === "playing" || renderDirty) ensureFrameLoop();
   }
 
   function makeWatcher(role, spawn, patrol, config, color, inheritedAlert) {
@@ -387,6 +409,15 @@
       navResolvedTarget: null,
       navExact: true,
       navTimer: 0,
+      visionCache: {
+        points: null,
+        x: NaN,
+        y: NaN,
+        angle: NaN,
+        range: NaN,
+        fov: NaN,
+        updatedAt: -Infinity
+      },
       brain: AI.createBrain(inheritedAlert)
     };
   }
@@ -434,6 +465,9 @@
     });
     safe = stage.safe ? { ...stage.safe, id: "recipe-safe", kind: "safe" } : null;
     exitDoor = { ...stage.exit, id: "stage-exit", kind: "exit" };
+    const exitHorizontalDistance = Math.min(exitDoor.x, W - exitDoor.x);
+    const exitVerticalDistance = Math.min(exitDoor.y, H - exitDoor.y);
+    exitDoor.vertical = exitHorizontalDistance <= exitVerticalDistance;
 
     player.x = stage.spawn.x;
     player.y = stage.spawn.y;
@@ -460,10 +494,13 @@
 
     freeze = 0;
     footstepTimer = 0;
+    hudUpdateTimer = 0;
     boostTimer = 0;
     coughTimer = 0;
     coughPending = false;
     noiseRings = [];
+    rebuildStaticStageLayer();
+    renderDirty = true;
     resetPursuitFeedback();
     ui.journal.classList.add("hidden");
     renderJournal();
@@ -471,6 +508,7 @@
     updateSuspicionUI();
 
     stageCaughtStart = caught;
+    ensureFrameLoop();
     if (showIntro) {
       audio.stage();
       showVN(Story.dayIntro(stage), () => {
@@ -568,7 +606,7 @@
   }
 
   function resetPursuitFeedback() {
-    previousChaseRoles = new Set();
+    previousChaseMask = 0;
     warningLatched = false;
     if (ui.dangerVignette) {
       ui.dangerVignette.style.setProperty("--danger", "0");
@@ -579,24 +617,28 @@
   }
 
   function updatePursuitFeedback() {
-    const current = new Set(
-      watchers
-        .filter(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE)
-        .map(watcher => watcher.role)
-    );
-    const entered = [...current].filter(role => !previousChaseRoles.has(role));
-    const left = [...previousChaseRoles].filter(role => !current.has(role));
+    let currentMask = 0;
+    for (const watcher of watchers) {
+      if (watcher.boundTimer > 0 || watcher.brain.state !== AI.STATES.CHASE) continue;
+      currentMask |= watcher.role === "sister" ? 2 : 1;
+    }
 
-    if (entered.length) {
-      const names = entered.map(role => role === "sister" ? "언니" : "엄마").join("·");
+    const enteredMask = currentMask & ~previousChaseMask;
+    const leftMask = previousChaseMask & ~currentMask;
+
+    if (enteredMask) {
+      const names = [
+        enteredMask & 1 ? "엄마" : "",
+        enteredMask & 2 ? "언니" : ""
+      ].filter(Boolean).join("·");
       audio.chase();
       showEventBanner("추적 시작", `${names}가 라먀니를 쫓기 시작했다`, "danger", 1.25, 3);
-    } else if (left.length && current.size === 0) {
+    } else if (leftMask && currentMask === 0) {
       audio.evade();
       showEventBanner("시야 이탈", "추적 시야에서 벗어났다 · 주변 수색은 계속된다", "safe", 1.2, 1);
     }
 
-    previousChaseRoles = current;
+    previousChaseMask = currentMask;
   }
 
   function watcherHears(watcher, pos, baseRadius) {
@@ -611,6 +653,7 @@
   }
 
   function emitNoise(pos, baseRadius, strong = false, splitWatchers = false) {
+    if (noiseRings.length >= 24) noiseRings.splice(0, noiseRings.length - 23);
     noiseRings.push({ x: pos.x, y: pos.y, radius: 8, max: baseRadius, life: .8 });
 
     let primary = null;
@@ -716,6 +759,7 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
+      updateMission();
       audio.clue();
       saveSession();
       showEventBanner("핵심 단서", `${obj.title} · ${stageClueCount()}/${clueDefs.length}`, "clue", 1.45, 2);
@@ -727,6 +771,7 @@
       player.actionLock = .65;
       collected[obj.id] = true;
       renderJournal();
+      updateMission();
       audio.pickup();
       saveSession();
       showEventBanner("혼선 기록", `${obj.title} · 진행과 무관`, "neutral", 1.15, 1);
@@ -805,6 +850,7 @@
           audio.success();
           showEventBanner("목표 확보", "원본 레시피를 손에 넣었다", "clue", 1.7, 3);
         }
+        updateMission();
         saveSession();
         showToast(
           stage.finalEscapeNoise
@@ -864,6 +910,8 @@
   function caughtBy(watcher) {
     caught += 1;
     freeze = 1.2;
+    renderDirty = true;
+    updateMission();
     resetPursuitFeedback();
     player.hidden = false;
     player.hideSpot = null;
@@ -982,7 +1030,7 @@
       watcher.navTarget = { x: target.x, y: target.y };
       watcher.navResolvedTarget = plan.target;
       watcher.navExact = plan.exact;
-      watcher.navTimer = watcher.brain.state === AI.STATES.CHASE ? .18 : .62;
+      watcher.navTimer = watcher.brain.state === AI.STATES.CHASE ? .24 : 12;
 
       if (!watcher.navPath.length) {
         watcher.velocity.x = 0;
@@ -1233,15 +1281,17 @@
   }
 
   function updateInventoryUI() {
-    if (ui.inventoryBinding) ui.inventoryBinding.textContent = `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`;
-    if (ui.inventoryCigarette) ui.inventoryCigarette.textContent = `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`;
+    setTextIfChanged(ui.inventoryBinding, `포장끈 × ${inventory.binding}/${ITEM_CAPACITY.binding}`);
+    setTextIfChanged(ui.inventoryCigarette, `담배 × ${inventory.cigarette}/${ITEM_CAPACITY.cigarette}`);
     if (ui.boostStatus) {
-      ui.boostStatus.textContent = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
-      ui.boostStatus.classList.toggle("hidden", boostTimer <= 0);
+      const boostText = boostTimer > 0 ? `속도 +45% · ${boostTimer.toFixed(1)}s` : "";
+      setTextIfChanged(ui.boostStatus, boostText);
+      setClassState(ui.boostStatus, "hidden", boostTimer <= 0);
     }
   }
 
   function updateItemEffects(dt) {
+    const previousBoostTenth = Math.ceil(boostTimer * 10);
     if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - dt);
     if (coughPending) {
       coughTimer -= dt;
@@ -1251,86 +1301,102 @@
         showToast("콜록! 담배 때문에 소리가 났다.", 1.2);
       }
     }
-    updateInventoryUI();
+    if (Math.ceil(boostTimer * 10) !== previousBoostTenth) updateInventoryUI();
   }
 
   function updateNoise(dt) {
-    noiseRings = noiseRings.filter(r => {
-      r.life -= dt;
-      r.radius += (r.max - r.radius) * Math.min(1, dt * 5);
-      return r.life > 0;
-    });
+    for (let i = noiseRings.length - 1; i >= 0; i -= 1) {
+      const ring = noiseRings[i];
+      ring.life -= dt;
+      ring.radius += (ring.max - ring.radius) * Math.min(1, dt * 5);
+      if (ring.life <= 0) noiseRings.splice(i, 1);
+    }
   }
 
   function updateMission() {
-    ui.missionLabel.textContent = `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`;
+    setTextIfChanged(ui.missionLabel, `DAY ${stage.day} / ${stage.totalDays} · ${stage.name}`);
     if (!stageCluesComplete()) {
-      ui.mission.textContent = `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`;
+      setTextIfChanged(ui.mission, `${stage.objective} · 핵심 단서 ${stageClueCount()}/${clueDefs.length}`);
       const pursuers = stage.sisterActive ? "엄마와 언니" : "엄마";
-      ui.submission.textContent = `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`;
+      setTextIfChanged(ui.submission, `${stage.layoutName || "기본 배치"} · ${pursuers}를 피하며 오늘의 핵심 단서를 찾자.`);
     } else if (safe && !hasRecipe) {
-      ui.mission.textContent = "원본 레시피 위치로 이동";
-      ui.submission.textContent = "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.";
+      setTextIfChanged(ui.mission, "원본 레시피 위치로 이동");
+      setTextIfChanged(ui.submission, "오늘 단서를 모두 찾았다. 부엌 안쪽 원본을 챙기자.");
     } else {
-      ui.mission.textContent = stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로";
-      ui.submission.textContent = `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`;
+      setTextIfChanged(
+        ui.mission,
+        stageIndex === campaign.stages.length - 1 ? "현관으로 최종 탈출" : "오늘의 단서 확보 — 출구로"
+      );
+      setTextIfChanged(ui.submission, `누적 기록 ${campaignClueCount()}개 · 발각 ${caught}회`);
     }
   }
 
   function updatePrompt() {
     if (gameState !== "playing") {
-      ui.prompt.classList.remove("show");
+      setClassState(ui.prompt, "show", false);
       return;
     }
     let text = "";
     if (player.actionLock > 0) {
       text = "확인 중… 잠깐 움직일 수 없다";
     } else if (player.hidden) {
-      const searcher = watchers
-        .filter(watcher =>
-          watcher.boundTimer <= 0 &&
-          [AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
-        )
-        .map(watcher => ({ watcher, distance: C.dist(watcher, player) }))
-        .sort((a, b) => a.distance - b.distance)[0];
-      text = searcher && searcher.distance < 110
-        ? `⚠ ${searcher.watcher.name}가 숨은 곳을 수색 중 · E · 나오기`
+      let nearestSearcher = null;
+      let nearestDistance = Infinity;
+      for (const watcher of watchers) {
+        if (
+          watcher.boundTimer > 0 ||
+          ![AI.STATES.INVESTIGATE, AI.STATES.SEARCH, AI.STATES.CHASE].includes(watcher.brain.state)
+        ) continue;
+        const distance = C.dist(watcher, player);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestSearcher = watcher;
+        }
+      }
+      text = nearestSearcher && nearestDistance < 110
+        ? `⚠ ${nearestSearcher.name}가 숨은 곳을 수색 중 · E · 나오기`
         : "E · 숨는 곳에서 나오기";
     } else {
       text = interactionPrompt(nearestUsableInteractable(72));
     }
-    if (text) {
-      ui.prompt.textContent = text;
-      ui.prompt.classList.add("show");
-    } else {
-      ui.prompt.classList.remove("show");
-    }
+
+    if (text) setTextIfChanged(ui.prompt, text);
+    setClassState(ui.prompt, "show", !!text);
   }
 
   function updateSuspicionUI() {
     const mom = watchers.find(w => w.role === "mom");
     const sister = watchers.find(w => w.role === "sister");
-    ui.momFill.style.width = `${Math.round((mom ? mom.suspicion : 0) * 100)}%`;
-    ui.momState.textContent = mom
-      ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
-      : "엄마";
+
+    const momWidth = `${Math.round((mom ? mom.suspicion : 0) * 100)}%`;
+    setStyleIfChanged(ui.momFill, "width", momWidth);
+    setTextIfChanged(
+      ui.momState,
+      mom
+        ? (mom.boundTimer > 0 ? `묶임 ${mom.boundTimer.toFixed(1)}s` : AI.stateLabel(mom.brain.state))
+        : "엄마"
+    );
 
     const momChasing = !!(mom && mom.boundTimer <= 0 && mom.brain.state === AI.STATES.CHASE);
     const momWarning = !!(mom && mom.suspicion >= .55);
-    ui.momCard.classList.toggle("warning", momWarning && !momChasing);
-    ui.momCard.classList.toggle("chasing", momChasing);
+    setClassState(ui.momCard, "warning", momWarning && !momChasing);
+    setClassState(ui.momCard, "chasing", momChasing);
 
-    ui.sisterCard.classList.toggle("hidden", !sister);
+    setClassState(ui.sisterCard, "hidden", !sister);
     if (sister) {
-      ui.sisterFill.style.width = `${Math.round(sister.suspicion * 100)}%`;
-      ui.sisterState.textContent = sister.boundTimer > 0
-        ? `묶임 ${sister.boundTimer.toFixed(1)}s`
-        : AI.stateLabel(sister.brain.state).replace("엄마", "언니");
+      setStyleIfChanged(ui.sisterFill, "width", `${Math.round(sister.suspicion * 100)}%`);
+      setTextIfChanged(
+        ui.sisterState,
+        sister.boundTimer > 0
+          ? `묶임 ${sister.boundTimer.toFixed(1)}s`
+          : AI.stateLabel(sister.brain.state).replace("엄마", "언니")
+      );
       const sisterChasing = sister.boundTimer <= 0 && sister.brain.state === AI.STATES.CHASE;
-      ui.sisterCard.classList.toggle("warning", sister.suspicion >= .55 && !sisterChasing);
-      ui.sisterCard.classList.toggle("chasing", sisterChasing);
+      setClassState(ui.sisterCard, "warning", sister.suspicion >= .55 && !sisterChasing);
+      setClassState(ui.sisterCard, "chasing", sisterChasing);
     } else {
-      ui.sisterCard.classList.remove("warning", "chasing");
+      setClassState(ui.sisterCard, "warning", false);
+      setClassState(ui.sisterCard, "chasing", false);
     }
 
     const maxSuspicion = watchers.reduce((max, watcher) => Math.max(max, watcher.suspicion || 0), 0);
@@ -1345,27 +1411,35 @@
       warningLatched = false;
     }
 
-    ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
-    ui.dangerVignette.classList.toggle("warning", danger >= .55 && !anyChase);
-    ui.dangerVignette.classList.toggle("chase", anyChase);
+    const dangerValue = danger.toFixed(3);
+    if (ui.dangerVignette.dataset.dangerValue !== dangerValue) {
+      ui.dangerVignette.dataset.dangerValue = dangerValue;
+      ui.dangerVignette.style.setProperty("--danger", dangerValue);
+    }
+    setClassState(ui.dangerVignette, "warning", danger >= .55 && !anyChase);
+    setClassState(ui.dangerVignette, "chase", anyChase);
   }
 
   function update(dt) {
     if (toastTimer > 0) {
       toastTimer -= dt;
-      if (toastTimer <= 0) ui.toast.classList.remove("show");
+      if (toastTimer <= 0) setClassState(ui.toast, "show", false);
     }
     if (eventBannerTimer > 0) {
       eventBannerTimer -= dt;
       if (eventBannerTimer <= 0) {
         eventBannerPriority = 0;
-        ui.eventBanner.classList.remove("show");
+        setClassState(ui.eventBanner, "show", false);
       }
     }
     if (gameState !== "playing") return;
 
     elapsed += dt;
     player.actionLock = Math.max(0, player.actionLock - dt);
+    hudUpdateTimer -= dt;
+    const refreshHud = hudUpdateTimer <= 0;
+    if (refreshHud) hudUpdateTimer = .05;
+
     autosaveTimer -= dt;
     if (autosaveTimer <= 0) {
       autosaveTimer = 8;
@@ -1373,9 +1447,10 @@
     }
     if (freeze > 0) {
       freeze -= dt;
-      updateMission();
-      updatePrompt();
-      updateSuspicionUI();
+      if (refreshHud) {
+        updatePrompt();
+        updateSuspicionUI();
+      }
       return;
     }
 
@@ -1386,58 +1461,63 @@
     }
     if (gameState === "playing") updatePursuitFeedback();
     updateNoise(dt);
-    updateMission();
-    updatePrompt();
-    updateSuspicionUI();
+    if (refreshHud) {
+      updatePrompt();
+      updateSuspicionUI();
+    }
+  }
+
+  function roundedRectOn(target, x, y, w, h, r, fill, stroke) {
+    target.beginPath();
+    target.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
+    if (fill) { target.fillStyle = fill; target.fill(); }
+    if (stroke) { target.strokeStyle = stroke; target.stroke(); }
   }
 
   function roundedRect(x, y, w, h, r, fill, stroke) {
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+    roundedRectOn(ctx, x, y, w, h, r, fill, stroke);
   }
 
-  function drawFloor() {
-    ctx.fillStyle = stage.palette.bg;
-    ctx.fillRect(0, 0, W, H);
+  function drawFloor(target = ctx) {
+    target.fillStyle = stage.palette.bg;
+    target.fillRect(0, 0, W, H);
     for (const zone of stage.zones) {
-      roundedRect(zone.x, zone.y, zone.w, zone.h, 20, zone.tone);
-      ctx.save();
-      ctx.globalAlpha = .23;
-      ctx.fillStyle = "#fff2dd";
-      ctx.font = "700 24px Segoe UI, Malgun Gothic, sans-serif";
-      ctx.fillText(zone.label, zone.x + 28, zone.y + 44);
-      ctx.restore();
+      roundedRectOn(target, zone.x, zone.y, zone.w, zone.h, 20, zone.tone);
+      target.save();
+      target.globalAlpha = .23;
+      target.fillStyle = "#fff2dd";
+      target.font = "700 24px Segoe UI, Malgun Gothic, sans-serif";
+      target.fillText(zone.label, zone.x + 28, zone.y + 44);
+      target.restore();
     }
-    ctx.strokeStyle = stage.palette.grid;
-    ctx.lineWidth = 1;
+    target.strokeStyle = stage.palette.grid;
+    target.lineWidth = 1;
     for (let x = 20; x < W; x += 42) {
-      ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, H - 20); ctx.stroke();
+      target.beginPath(); target.moveTo(x, 20); target.lineTo(x, H - 20); target.stroke();
     }
   }
 
-  function drawWallsAndFurniture() {
-    ctx.lineWidth = 1.5;
+  function drawWallsAndFurniture(target = ctx) {
+    target.lineWidth = 1.5;
     for (const w of walls) {
-      roundedRect(
-        w.x, w.y, w.w, w.h, 5,
+      roundedRectOn(
+        target, w.x, w.y, w.w, w.h, 5,
         stage.palette.wall,
         stage.palette.wallEdge || "rgba(255,255,255,.12)"
       );
     }
 
     for (const p of (stage.passages || [])) {
-      ctx.save();
-      ctx.shadowColor = stage.palette.passageEdge || "rgba(255,226,189,.55)";
-      ctx.shadowBlur = 7;
-      ctx.lineWidth = 2;
-      roundedRect(
-        p.x, p.y, p.w, p.h, 4,
+      target.save();
+      target.shadowColor = stage.palette.passageEdge || "rgba(255,226,189,.55)";
+      target.shadowBlur = 7;
+      target.lineWidth = 2;
+      roundedRectOn(
+        target, p.x, p.y, p.w, p.h, 4,
         stage.palette.passage || "rgba(255,226,189,.28)",
         stage.palette.passageEdge || "rgba(255,226,189,.55)"
       );
-      ctx.restore();
+      target.restore();
     }
 
     for (const f of furniture) {
@@ -1448,24 +1528,45 @@
       if (!f.color && (f.kind === "counter" || f.kind === "pantry" || f.kind === "drawer")) fill = "#63483e";
       if (!f.color && f.kind === "fridge") fill = "#6a6a70";
       if (!f.color && f.kind === "tv") fill = "#25232b";
-      roundedRect(f.x, f.y, f.w, f.h, 10, fill, "rgba(255,255,255,.08)");
-      ctx.fillStyle = "rgba(255,245,234,.48)";
-      ctx.font = "11px Segoe UI, Malgun Gothic, sans-serif";
-      ctx.fillText(f.label, f.x + 8, f.y + 18);
+      roundedRectOn(target, f.x, f.y, f.w, f.h, 10, fill, "rgba(255,255,255,.08)");
+      target.fillStyle = "rgba(255,245,234,.48)";
+      target.font = "11px Segoe UI, Malgun Gothic, sans-serif";
+      target.fillText(f.label, f.x + 8, f.y + 18);
     }
+  }
+
+  function rebuildStaticStageLayer() {
+    if (staticStageCanvas) {
+      staticStageCanvas.width = 0;
+      staticStageCanvas.height = 0;
+    }
+    staticStageCanvas = null;
+    if (!document.createElement) return;
+    const layer = document.createElement("canvas");
+    if (!layer || typeof layer.getContext !== "function") return;
+    layer.width = W;
+    layer.height = H;
+    const layerCtx = layer.getContext("2d");
+    if (!layerCtx) return;
+    drawFloor(layerCtx);
+    drawWallsAndFurniture(layerCtx);
+    staticStageCanvas = layer;
+  }
+
+  function drawEvidenceMarker(c, pulse) {
+    if (collected[c.id]) return;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
+    ctx.fillRect(-7, -7, 14, 14);
+    ctx.restore();
   }
 
   function drawInteractables() {
     const pulse = .5 + .5 * Math.sin(performance.now() / 280);
-    for (const c of [...clueDefs, ...decoyDefs]) {
-      if (collected[c.id]) continue;
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
-      ctx.fillRect(-7, -7, 14, 14);
-      ctx.restore();
-    }
+    for (const c of clueDefs) drawEvidenceMarker(c, pulse);
+    for (const c of decoyDefs) drawEvidenceMarker(c, pulse);
 
     for (const item of itemDefs) {
       if (pickedItems[item.id]) continue;
@@ -1508,14 +1609,7 @@
     const exitColor = exitReady
       ? (stage.palette.exitReady || "#9fd68a")
       : (stage.palette.exitLocked || "rgba(244,210,158,.62)");
-    const edgeDistances = {
-      left: exitDoor.x,
-      right: W - exitDoor.x,
-      top: exitDoor.y,
-      bottom: H - exitDoor.y
-    };
-    const nearestEdge = Object.entries(edgeDistances).sort((a, b) => a[1] - b[1])[0][0];
-    const verticalExit = nearestEdge === "left" || nearestEdge === "right";
+    const verticalExit = exitDoor.vertical;
 
     ctx.save();
     ctx.lineCap = "round";
@@ -1546,10 +1640,31 @@
     }
   }
 
+  function watcherVisionPolygon(watcher, range, fov) {
+    const cache = watcher.visionCache;
+    const now = performance.now();
+    const moved = !Number.isFinite(cache.x) || Math.hypot(watcher.x - cache.x, watcher.y - cache.y) > 3;
+    const rotated = !Number.isFinite(cache.angle) || Math.abs(C.angleDiff(watcher.angle, cache.angle)) > .035;
+    const rangeChanged = !Number.isFinite(cache.range) || Math.abs(range - cache.range) > 2;
+    const fovChanged = !Number.isFinite(cache.fov) || Math.abs(fov - cache.fov) > .02;
+    const expired = now - cache.updatedAt >= 50;
+
+    if (!cache.points || moved || rotated || rangeChanged || fovChanged || expired) {
+      cache.points = C.visionPolygon(watcher, range, fov, blockers, 32);
+      cache.x = watcher.x;
+      cache.y = watcher.y;
+      cache.angle = watcher.angle;
+      cache.range = range;
+      cache.fov = fov;
+      cache.updatedAt = now;
+    }
+    return cache.points;
+  }
+
   function drawWatcherVision(watcher) {
     const range = AI.effectiveVisionRange(watcher.config.visionRange, player, watcher.brain.alertness);
     const fov = AI.effectiveFov(watcher.config.fov, watcher.brain.alertness, watcher.brain.state);
-    const polygon = C.visionPolygon(watcher, range, fov, blockers, 44);
+    const polygon = watcherVisionPolygon(watcher, range, fov);
     if (polygon.length < 3) return;
 
     const g = ctx.createRadialGradient(watcher.x, watcher.y, 10, watcher.x, watcher.y, range);
@@ -1667,8 +1782,11 @@
   }
 
   function draw() {
-    drawFloor();
-    drawWallsAndFurniture();
+    if (staticStageCanvas) ctx.drawImage(staticStageCanvas, 0, 0);
+    else {
+      drawFloor();
+      drawWallsAndFurniture();
+    }
     drawNoise();
     for (const watcher of watchers) drawWatcherVision(watcher);
     drawInteractables();
@@ -1681,12 +1799,21 @@
     }
   }
 
+  function ensureFrameLoop() {
+    if (frameHandle != null) return;
+    frameHandle = requestAnimationFrame(frame);
+  }
+
   function frame(now) {
+    frameHandle = null;
     const dt = Math.min(.035, (now - lastFrame) / 1000 || 0);
     lastFrame = now;
     update(dt);
-    if (gameState !== "start") draw();
-    requestAnimationFrame(frame);
+    if (gameState === "playing" || (gameState !== "start" && renderDirty)) {
+      draw();
+      renderDirty = false;
+    }
+    if (gameState === "playing" || renderDirty) ensureFrameLoop();
   }
 
   window.addEventListener("keydown", e => {
@@ -1719,6 +1846,16 @@
     if (document.hidden && gameState === "playing") {
       pauseGame("창이 비활성화되어 자동으로 일시정지되었습니다.");
     }
+  });
+
+  window.addEventListener("pagehide", () => {
+    if (gameState !== "start" && gameState !== "result") saveSession();
+  });
+
+  window.addEventListener("pageshow", () => {
+    lastFrame = performance.now();
+    renderDirty = gameState !== "start";
+    if (renderDirty || gameState === "playing") ensureFrameLoop();
   });
 
   window.addEventListener("beforeunload", () => {
@@ -1767,6 +1904,5 @@
   renderJournal();
   updateInventoryUI();
   refreshContinueButton();
-  requestAnimationFrame(frame);
 
 })();
