@@ -106,7 +106,7 @@
   let eventBannerTimer = 0;
   let eventBannerPriority = 0;
   let previousChaseRoles = new Set();
-  let dangerFeedbackTier = 0;
+  let warningLatched = false;
   let footstepTimer = 0;
   let autosaveTimer = 8;
   let noiseRings = [];
@@ -569,7 +569,7 @@
 
   function resetPursuitFeedback() {
     previousChaseRoles = new Set();
-    dangerFeedbackTier = 0;
+    warningLatched = false;
     if (ui.dangerVignette) {
       ui.dangerVignette.style.setProperty("--danger", "0");
       ui.dangerVignette.classList.remove("warning", "chase");
@@ -1337,18 +1337,12 @@
     const anyChase = watchers.some(watcher => watcher.boundTimer <= 0 && watcher.brain.state === AI.STATES.CHASE);
     const danger = C.clamp(Math.max(maxSuspicion, anyChase ? .58 : 0), 0, 1);
 
-    if (anyChase) {
-      dangerFeedbackTier = 2;
-    } else if (maxSuspicion >= .72) {
-      if (dangerFeedbackTier === 0) {
-        audio.warning();
-        showEventBanner("발각 임박", "시야를 끊거나 즉시 엄폐하자", "danger", 1.0, 3);
-      }
-      dangerFeedbackTier = 1;
+    if (maxSuspicion >= .72 && !warningLatched) {
+      warningLatched = true;
+      audio.warning();
+      showEventBanner("발각 임박", "의심도가 높다 · 즉시 시야를 끊자", "danger", 1.0, 4);
     } else if (maxSuspicion <= .45) {
-      dangerFeedbackTier = 0;
-    } else if (dangerFeedbackTier === 2) {
-      dangerFeedbackTier = 1;
+      warningLatched = false;
     }
 
     ui.dangerVignette.style.setProperty("--danger", danger.toFixed(3));
