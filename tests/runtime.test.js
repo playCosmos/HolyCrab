@@ -521,13 +521,13 @@ test("a fixed campaign can be completed through the real 10-day runtime with cat
     }
 
     if (stage.safe) {
-      interactAt(harness, approaches["safe-0"].point);
+      interactAt(harness, approaches.safe.point);
       state = harness.hooks.snapshot();
       assert.equal(state.hasRecipe, true, `${stage.id}: final recipe was not acquired`);
       harness.hooks.clearActionLock();
     }
 
-    interactAt(harness, approaches["exit-0"].point);
+    interactAt(harness, approaches.exit.point);
     state = harness.hooks.snapshot();
 
     if (dayIndex < campaign.stages.length - 1) {
