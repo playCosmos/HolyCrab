@@ -135,6 +135,7 @@ kbd {
     radial-gradient(circle at center, transparent 46%, rgba(116, 12, 20, .16) 66%, rgba(191, 35, 45, .62) 100%);
   box-shadow: inset 0 0 calc(34px + var(--danger) * 70px) rgba(233, 63, 74, calc(var(--danger) * .5));
   transition: opacity .12s linear, box-shadow .12s linear;
+  will-change: opacity;
 }
 #danger-vignette.warning {
   animation: danger-pulse .8s ease-in-out infinite alternate;
@@ -143,8 +144,8 @@ kbd {
   animation: danger-pulse .42s ease-in-out infinite alternate;
 }
 @keyframes danger-pulse {
-  from { filter: brightness(.9); }
-  to { filter: brightness(1.28); }
+  from { opacity: calc(var(--danger) * .62); }
+  to { opacity: calc(var(--danger) * .9); }
 }
 
 #event-banner {
