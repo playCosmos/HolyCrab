@@ -404,6 +404,15 @@
       navResolvedTarget: null,
       navExact: true,
       navTimer: 0,
+      visionCache: {
+        points: null,
+        x: NaN,
+        y: NaN,
+        angle: NaN,
+        range: NaN,
+        fov: NaN,
+        updatedAt: -Infinity
+      },
       brain: AI.createBrain(inheritedAlert)
     };
   }
@@ -1620,10 +1629,31 @@
     }
   }
 
+  function watcherVisionPolygon(watcher, range, fov) {
+    const cache = watcher.visionCache;
+    const now = performance.now();
+    const moved = !Number.isFinite(cache.x) || Math.hypot(watcher.x - cache.x, watcher.y - cache.y) > 3;
+    const rotated = !Number.isFinite(cache.angle) || Math.abs(C.angleDiff(watcher.angle, cache.angle)) > .035;
+    const rangeChanged = !Number.isFinite(cache.range) || Math.abs(range - cache.range) > 2;
+    const fovChanged = !Number.isFinite(cache.fov) || Math.abs(fov - cache.fov) > .02;
+    const expired = now - cache.updatedAt >= 50;
+
+    if (!cache.points || moved || rotated || rangeChanged || fovChanged || expired) {
+      cache.points = C.visionPolygon(watcher, range, fov, blockers, 32);
+      cache.x = watcher.x;
+      cache.y = watcher.y;
+      cache.angle = watcher.angle;
+      cache.range = range;
+      cache.fov = fov;
+      cache.updatedAt = now;
+    }
+    return cache.points;
+  }
+
   function drawWatcherVision(watcher) {
     const range = AI.effectiveVisionRange(watcher.config.visionRange, player, watcher.brain.alertness);
     const fov = AI.effectiveFov(watcher.config.fov, watcher.brain.alertness, watcher.brain.state);
-    const polygon = C.visionPolygon(watcher, range, fov, blockers, 44);
+    const polygon = watcherVisionPolygon(watcher, range, fov);
     if (polygon.length < 3) return;
 
     const g = ctx.createRadialGradient(watcher.x, watcher.y, 10, watcher.x, watcher.y, range);
