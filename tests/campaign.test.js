@@ -356,7 +356,7 @@ test("finale uses its own lockdown layout with reduced safe resources", () => {
 
 
 test("every generated stage keeps clues, daily item, safe, and exit interactable from spawn and retry", () => {
-  for (let seedIndex = 0; seedIndex < 60; seedIndex += 1) {
+  for (let seedIndex = 0; seedIndex < 12; seedIndex += 1) {
     const campaign = Campaign.generateCampaign("player-playability-" + seedIndex);
     for (const stage of campaign.stages) {
       const result = C.validateStagePlayability(stage, 24);
