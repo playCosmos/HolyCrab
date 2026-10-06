@@ -1549,19 +1549,20 @@
     staticStageCanvas = layer;
   }
 
+  function drawEvidenceMarker(c, pulse) {
+    if (collected[c.id]) return;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
+    ctx.fillRect(-7, -7, 14, 14);
+    ctx.restore();
+  }
+
   function drawInteractables() {
     const pulse = .5 + .5 * Math.sin(performance.now() / 280);
-    const drawEvidenceMarker = c => {
-      if (collected[c.id]) return;
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = `rgba(246,183,96,${.55 + pulse * .4})`;
-      ctx.fillRect(-7, -7, 14, 14);
-      ctx.restore();
-    };
-    for (const c of clueDefs) drawEvidenceMarker(c);
-    for (const c of decoyDefs) drawEvidenceMarker(c);
+    for (const c of clueDefs) drawEvidenceMarker(c, pulse);
+    for (const c of decoyDefs) drawEvidenceMarker(c, pulse);
 
     for (const item of itemDefs) {
       if (pickedItems[item.id]) continue;
