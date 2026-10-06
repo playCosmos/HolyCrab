@@ -122,3 +122,26 @@ test("game waits on a neutral start screen before showing VN dialogue", () => {
   assert.match(gameSource, /resumeSavedCampaign\(\)/);
   assert.doesNotMatch(gameSource, /\n\s*startCampaign\(\);\n\s*renderJournal\(\);/);
 });
+
+
+test("gameplay feedback layers are separate from persistent HUD and respect reduced motion", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "style.css"), "utf8");
+  const gameSource = fs.readFileSync(path.join(__dirname, "..", "src", "game.js"), "utf8");
+
+  const playfield = html.match(/<div id="playfield">[sS]*?</div>s*<div id="bottom-status-bar"/)?.[0] || "";
+  assert.match(playfield, /id="danger-vignette"/);
+  assert.match(playfield, /id="event-banner"/);
+  assert.match(playfield, /id="event-banner-kicker"/);
+  assert.match(playfield, /id="event-banner-text"/);
+
+  assert.match(css, /#danger-vignette[sS]*pointer-events:s*none/);
+  assert.match(css, /#event-banner[sS]*pointer-events:s*none/);
+  assert.match(css, /prefers-reduced-motion:s*reduce/);
+
+  assert.match(gameSource, /showEventBanner("발각 임박"/);
+  assert.match(gameSource, /audio.chase()/);
+  assert.match(gameSource, /"시야 이탈"/);
+  assert.match(gameSource, /showEventBanner("핵심 단서"/);
+  assert.match(gameSource, /showEventBanner("원본 확보"/);
+});
