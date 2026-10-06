@@ -64,6 +64,20 @@
 
   const keys = Object.create(null);
 
+  function setTextIfChanged(element, value) {
+    if (element && element.textContent !== value) element.textContent = value;
+  }
+
+  function setClassState(element, name, enabled) {
+    if (!element) return;
+    const next = !!enabled;
+    if (element.classList.contains(name) !== next) element.classList.toggle(name, next);
+  }
+
+  function setStyleIfChanged(element, property, value) {
+    if (element && element.style[property] !== value) element.style[property] = value;
+  }
+
   const player = {
     x: 0, y: 0, r: 16, angle: 0,
     hidden: false, hideSpot: null, moving: false, sneaking: false,
